@@ -3,6 +3,21 @@ const ctx = canvas.getContext("2d");
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
 
+function set(variable, value) {
+    document.cookie = variable + "=" + value + "; expires=Fri, 31 Dec 9999 23:59:59 GMT";
+}
+
+function get(variable) {
+    var cookies = document.cookie.split(';');
+    for (var i = 0; i < cookies.length; i++) {
+        var cookie = cookies[i].trim();
+        if (cookie.indexOf(variable + "=") === 0) {
+            return cookie.substring(variable.length + 1);
+        }
+    }
+    return "";
+}
+
 let isShooted = 0;
 
 let playerImage = new Image();
@@ -127,6 +142,7 @@ let player = {
 
 let enemies = [];
 let score = 0;
+let high_score = 0;
 let gameOver = false;
 let time = 0;
 let imagesLoaded = false;
@@ -261,7 +277,15 @@ function displayScore() {
 	if(!gameOver) {
   	  ctx.fillStyle = 'white';
     	ctx.font = "10px 'Press Start 2P'"; // 8-bit pixel font
-  	  ctx.fillText("Score: " + score, canvas.width - 110, 45);
+  	  ctx.fillText("Score: " + score, canvas.width - 150, 65);
+    }
+}
+
+function displayHighScore() {
+	if(!gameOver) {
+  	  ctx.fillStyle = 'white';
+    	ctx.font = "10px 'Press Start 2P'"; // 8-bit pixel font
+  	  ctx.fillText("HI-Score: " + high_score, canvas.width - 150, 40);
     }
 }
 
@@ -376,9 +400,16 @@ function animate() {
         drawExplosions(); // Patlama efektlerini çiz
         drawHearts(); // Uçuşan kalpleri çiz
         displayScore(); // Skoru göster
+        displayHighScore(); // Yüksek Skoru göster
         displayHearts(); // Kalp sayısını göster
         drawDamageEffect(); // Hasar efektini çiz
         animationId = requestAnimationFrame(animate); // Animasyonu devam ettir
+        
+        if(high_score < score) {
+            high_score = score;
+			set("high_score", high_score);
+        }
+                
     }
 }
 
@@ -442,7 +473,29 @@ function stopMusic() {
 
 function gameMusic() {
 	music_audio.play();
-	musicID = setTimeout(() => { gameMusic(); }, 162000);
+	musicID = setTimeout(() => { gameMusic(); }, (1000 * 160));
 }
 
+var soundButton = document.getElementById('soundButton');
+soundButton.addEventListener('click', function() {
+	if(music_audio.volume <= 0.0) {
+		music_audio.volume = 1.0;
+		soundButton.textContent = '🔊';
+	} else {
+		music_audio.volume = 0.0;
+		soundButton.textContent = '🔈';
+	}
+});
+
+function loadDatas() {
+	
+	// Get Data: High Score
+	const data_score = get("high_score");
+	if(data_score.length > 0) {
+		high_score = parseInt(data_score);
+	}
+	
+}
+    
+loadDatas();
 drawBackground();
