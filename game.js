@@ -23,13 +23,14 @@ let isShooted = 0;
 let playerImage = new Image();
 playerImage.src = 'images/player.png';  // Karakterin resmi
 
+// Düşmanın resmi
 const enemys = [
 	"images/enemy_1.png",
 	"images/enemy_2.png",
 	"images/enemy_3.png",
 	"images/enemy_4.png",
 	"images/enemy_5.png"
-];    // Düşmanın resmi
+];
 
 let enemyImage = new Image();
 enemyImage.src = enemys[Math.floor(Math.random() * (enemys.length +1))];
@@ -473,7 +474,7 @@ function stopMusic() {
 
 function gameMusic() {
 	music_audio.play();
-	musicID = setTimeout(() => { gameMusic(); }, (1000 * 160));
+	musicID = setTimeout(() => { gameMusic(); }, (160 * 1000));
 }
 
 var soundButton = document.getElementById('soundButton');
@@ -481,21 +482,43 @@ soundButton.addEventListener('click', function() {
 	if(music_audio.volume <= 0.0) {
 		music_audio.volume = 1.0;
 		soundButton.textContent = '🔊';
+		set("sound_volume", music_audio.volume);
 	} else {
 		music_audio.volume = 0.0;
 		soundButton.textContent = '🔈';
+		set("sound_volume", music_audio.volume);
 	}
 });
 
+function iconUpdate() {
+	if(music_audio.volume <= 0.0) {
+		soundButton.textContent = '🔈';
+	} else {
+		soundButton.textContent = '🔊';
+	}
+}
+
 function loadDatas() {
+	let data
 	
 	// Get Data: High Score
-	const data_score = get("high_score");
-	if(data_score.length > 0) {
-		high_score = parseInt(data_score);
+	data = get("high_score");
+	if(data.length > 0) {
+		high_score = parseInt(data);
+	}
+	
+	// Get Data: Sound Volume
+	data = get("sound_volume");
+	if(data.length > 0) {
+		music_audio.volume = parseFloat(data);
 	}
 	
 }
-    
+
+function changeCharacter(character) {
+	playerImage.src = character;
+}
+
 loadDatas();
 drawBackground();
+iconUpdate();

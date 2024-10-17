@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2D Platform Shooting Game</title>
+    <style>
+        @font-face {
+            font-family: 'Press Start 2P';
+            src: url('fonts/PressStart2P-Regular.ttf') format('truetype');
+        }
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: black;
+            color: white;
+            font-family: 'Press Start 2P', monospace;
+        }
+        canvas {
+            background-color: #333;
+            display: block;
+        }
+        #gameOver {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            color: white;
+            font-family: 'Press Start 2P', cursive;
+            font-size: 12px;
+        }
+        #finalScore {
+            font-size: 9px;
+            font-weight: bold;
+        }
+        #restart {
+            padding: 15px 30px;
+            background-color: #88e611;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 22px;
+            transition: background-color 0.3s, transform 0.2s;
+            font-family: 'Press Start 2P', cursive;
+        }
+        
+        #restart:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+            transform: scale(1.1);
+        }
+        
+        #controls {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            display: none; /* Başlangıçta gizli olacak */
+            gap: 20px;
+        }
+        #titleScreen {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .button {
+            width: 60px;
+            height: 60px;
+            margin: 5px;
+            background-color: rgba(255, 255, 255, 0.1);
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.2s;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Press Start 2P', cursive;
+        }
+
+        .button:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+            transform: scale(1.1);
+        }
+
+        #start {
+            padding: 15px 30px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 22px;
+            transition: background-color 0.3s, transform 0.2s;
+            font-family: 'Press Start 2P', cursive;
+        }
+
+        #start:hover {
+            background-color: #218838;
+            transform: scale(1.05);
+        }
+        
+        #soundControls {
+            position: fixed;
+            bottom: 20px;
+            left: 80%;
+            display: flex;
+            gap: 10px;
+        }
+
+        .soundButton {
+            width: 50px;
+            height: 50px;
+            background-color: rgba(255, 255, 255, 0.1);
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 24px;
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: background-color 0.3s, transform 0.2s;
+        }
+
+        .soundButton:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+            transform: scale(1.1);
+        }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas"></canvas>
+    <div id="titleScreen">
+        <h3>Galaxian</h3>
+        <button id="start">Başla</button>
+    </div>
+    <div id="gameOver">
+        <h1>Game Over</h1>
+        <p id="finalScore"></p>
+        <button id="restart">Yeniden Başla</button>
+    </div>
+
+    <div id="controls">
+        <button id="upButton" class="button"><img style="height: 48px; width: 48px;" src="images/up.png" alt="Up"></button>
+        <button id="downButton" class="button"><img style="height: 48px; width: 48px;" src="images/down.png" alt="Down"></button>
+        <button id="fireButton" class="button"><img style="height: 48px; width: 48px;" src="images/fire.png" alt="Fire"></button>
+    </div>
+    
+    <div id="soundControls">
+        <button id="soundButton" class="soundButton">🔊</button>
+    </div>
+    
+    <script src="game.js"></script>
+</body>
+</html>
