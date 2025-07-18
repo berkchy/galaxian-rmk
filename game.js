@@ -1939,6 +1939,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 players = res.players;
                 updatePlayerList(players);
             }
+            // DEBUG: Konsola status ve isOwner yaz
+            console.log('pollLobbyPlayers status:', res.status, 'isOwner:', isOwner, 'gameStarted:', gameStarted);
             // Lobi status kontrolü (oyun başladı mı?)
             if (!gameStarted && res.status === 'started') {
                 lobbyStatus = 'started';
@@ -2141,6 +2143,15 @@ function subscribePlayersRealtime() {
     if (!lobbyId) return;
     playersSubscription = supabase.channel('players-' + lobbyId)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'players', filter: `lobby_id=eq.${lobbyId}` }, async payload => {
+            // DEBUG: Event geldiğinde status'u tekrar kontrol et
+            const res = await postJson(FN_GET_PLAYERS, { lobby_id: lobbyId });
+            console.log('subscribePlayersRealtime event, status:', res.status, 'isOwner:', isOwner, 'gameStarted:', gameStarted);
+            if (!gameStarted && res.status === 'started') {
+                lobbyStatus = 'started';
+                gameStarted = true;
+                if (res.players) players = res.players;
+                startMultiplayerGame();
+            }
             await pollLobbyPlayers();
         })
         .subscribe();
