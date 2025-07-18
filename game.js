@@ -1967,7 +1967,11 @@ document.addEventListener('DOMContentLoaded', () => {
     function startMultiplayerGame() {
         if (gameStarted) return; // Oyun zaten başladıysa tekrar başlatma
         gameStarted = true;
-        document.getElementById('titleScreen').style.display = 'none';
+        // Lobi ve ana menü ekranlarını gizle
+        const lobbyMenu = document.getElementById('lobbyMenu');
+        if (lobbyMenu) lobbyMenu.style.display = 'none';
+        const titleScreen = document.getElementById('titleScreen');
+        if (titleScreen) titleScreen.style.display = 'none';
         clearInterval(lobbyPollInterval);
 
         if (typeof stopMenuAnimation === 'function') stopMenuAnimation();
