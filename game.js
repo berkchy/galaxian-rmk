@@ -128,8 +128,7 @@ let player = {
     height: 50,
     speed: 5,
     bullets: [],
-    hearts: 3.0, // Artık float
-    // Güçlendirici durumları
+    hearts: 3.0,
     speedBoost: false,
     speedBoostTime: 0,
     shield: false,
@@ -149,10 +148,10 @@ let isDamaged = false;
 
 // Boss görselleri ve boss müziği
 let bossImages = [
-    'images/boss1.png',
-    'images/boss2.png',
-    'images/boss3.png',
-    'images/boss4.png'
+    'images/boss_1.png',
+    'images/boss_2.png',
+    'images/boss_3.png',
+    'images/boss_4.png'
 ]; // PNG'leri eklemeyi unutmayın
 let bossMusic = new Audio('sounds/bossmusic.mp3'); // Boss müziği ekleyin
 let boss = null;
@@ -218,13 +217,13 @@ function drawHearts() {
     });
 }
 
-function createExplosion(x, y, w, h) {
+function createExplosion(x, y, w, h, duration = 10) {
     explosions.push({
         x: x,
         y: y,
         width: w,
         height: h,
-        duration: 10
+        duration: duration
     });
 }
 
@@ -330,11 +329,15 @@ function completeWave() {
     showWaveMessage('WAVE ' + (wave-1) + ' COMPLETED!', 3200);
 }
 
+// drawPlayer fonksiyonunun tek ve doğru hali:
 function drawPlayer() {
-    ctx.drawImage(playerImage, player.x, player.y, player.width, player.height);
+    if (!playerDead || !gameOver) {
+        ctx.drawImage(playerImage, player.x, player.y, player.width, player.height);
+    }
 }
 
 function movePlayer() {
+    if (playerDead || gameOver) return;
     let currentSpeed = player.speed;
     if (player.speedBoost) {
         currentSpeed *= 2; // Hız artırımı aktifse 2 kat hız
@@ -350,48 +353,47 @@ function movePlayer() {
 
 function shoot() {
     const now = Date.now();
-    if(!gameOver && !waveTransition && (now - lastShotTime) > shotCooldown) {
-        lastShotTime = now;
-        
-        const bulletW = 10, bulletH = 5;
-        if (player.tripleShot) {
-            const spread = 0.13;
-            player.bullets.push({
-                x: player.x + player.width,
-                y: player.y + player.height / 2 - bulletH / 2 - 10, // yukarı çapraz
-                width: bulletW,
-                height: bulletH,
-                speed: 25,
-                angle: -spread
-            });
-            player.bullets.push({
-                x: player.x + player.width,
-                y: player.y + player.height / 2 - bulletH / 2, // düz
-                width: bulletW,
-                height: bulletH,
-                speed: 25,
-                angle: 0
-            });
-            player.bullets.push({
-                x: player.x + player.width,
-                y: player.y + player.height / 2 - bulletH / 2 + 10, // aşağı çapraz
-                width: bulletW,
-                height: bulletH,
-                speed: 25,
-                angle: spread
-            });
-        } else {
-            player.bullets.push({
-                x: player.x + player.width,
-                y: player.y + player.height / 2 - bulletH / 2,
-                width: bulletW,
-                height: bulletH,
-                speed: 25,
-                angle: 0
-            });
-        }
-        playSound(0);
+    if(gameOver || playerDead || waveTransition || (now - lastShotTime) <= shotCooldown) return;
+    lastShotTime = now;
+    
+    const bulletW = 10, bulletH = 5;
+    if (player.tripleShot) {
+        const spread = 0.13;
+        player.bullets.push({
+            x: player.x + player.width,
+            y: player.y + player.height / 2 - bulletH / 2 - 10, // yukarı çapraz
+            width: bulletW,
+            height: bulletH,
+            speed: 25,
+            angle: -spread
+        });
+        player.bullets.push({
+            x: player.x + player.width,
+            y: player.y + player.height / 2 - bulletH / 2, // düz
+            width: bulletW,
+            height: bulletH,
+            speed: 25,
+            angle: 0
+        });
+        player.bullets.push({
+            x: player.x + player.width,
+            y: player.y + player.height / 2 - bulletH / 2 + 10, // aşağı çapraz
+            width: bulletW,
+            height: bulletH,
+            speed: 25,
+            angle: spread
+        });
+    } else {
+        player.bullets.push({
+            x: player.x + player.width,
+            y: player.y + player.height / 2 - bulletH / 2,
+            width: bulletW,
+            height: bulletH,
+            speed: 25,
+            angle: 0
+        });
     }
+    playSound(0);
 }
 
 function drawBullets() {
@@ -442,7 +444,7 @@ function createEnemy() {
             });
             enemiesRemaining--;
         }
-    } else if (enemiesRemaining <= 0 && enemies.length === 0 && !waveTransition && !bossActive && (wave % 5 === 1) && !bossWave && wave > 1) {
+    } else if (enemiesRemaining <= 0 && enemies.length === 0 && !waveTransition && !bossActive && (wave % 5 === 0) && !bossWave && wave > 0) {
         // Normal düşmanlar bitti, boss dalgası zamanı
         let bossImg = new Image();
         let bossIndex = Math.floor(Math.random() * bossImages.length);
@@ -611,9 +613,6 @@ function endGame() {
         window.bossMusic.currentTime = 0;
     }
     gameOver = true;
-    document.getElementById('finalScoreValue').textContent = score;
-    document.getElementById('hiScoreValue').textContent = high_score;
-    document.getElementById('gameOver').style.display = 'block';
     document.getElementById('controls').style.display = 'none';
     cancelAnimationFrame(animationId);
     clearInterval(enemySpawnInterval);
@@ -739,10 +738,12 @@ function completeWave() {
 }
 
 function drawPlayer() {
-    ctx.drawImage(playerImage, player.x, player.y, player.width, player.height);
+    if (!playerDead || !gameOver)
+        ctx.drawImage(playerImage, player.x, player.y, player.width, player.height);
 }
 
 function movePlayer() {
+    if (playerDead || gameOver) return;
     let currentSpeed = player.speed;
     if (player.speedBoost) {
         currentSpeed *= 2; // Hız artırımı aktifse 2 kat hız
@@ -758,48 +759,47 @@ function movePlayer() {
 
 function shoot() {
     const now = Date.now();
-    if(!gameOver && !waveTransition && (now - lastShotTime) > shotCooldown) {
-        lastShotTime = now;
-        
-        const bulletW = 10, bulletH = 5;
-        if (player.tripleShot) {
-            const spread = 0.13;
-            player.bullets.push({
-                x: player.x + player.width,
-                y: player.y + player.height / 2 - bulletH / 2 - 10, // yukarı çapraz
-                width: bulletW,
-                height: bulletH,
-                speed: 25,
-                angle: -spread
-            });
-            player.bullets.push({
-                x: player.x + player.width,
-                y: player.y + player.height / 2 - bulletH / 2, // düz
-                width: bulletW,
-                height: bulletH,
-                speed: 25,
-                angle: 0
-            });
-            player.bullets.push({
-                x: player.x + player.width,
-                y: player.y + player.height / 2 - bulletH / 2 + 10, // aşağı çapraz
-                width: bulletW,
-                height: bulletH,
-                speed: 25,
-                angle: spread
-            });
-        } else {
-            player.bullets.push({
-                x: player.x + player.width,
-                y: player.y + player.height / 2 - bulletH / 2,
-                width: bulletW,
-                height: bulletH,
-                speed: 25,
-                angle: 0
-            });
-        }
-        playSound(0);
+    if(gameOver || playerDead || waveTransition || (now - lastShotTime) <= shotCooldown) return;
+    lastShotTime = now;
+    
+    const bulletW = 10, bulletH = 5;
+    if (player.tripleShot) {
+        const spread = 0.13;
+        player.bullets.push({
+            x: player.x + player.width,
+            y: player.y + player.height / 2 - bulletH / 2 - 10, // yukarı çapraz
+            width: bulletW,
+            height: bulletH,
+            speed: 25,
+            angle: -spread
+        });
+        player.bullets.push({
+            x: player.x + player.width,
+            y: player.y + player.height / 2 - bulletH / 2, // düz
+            width: bulletW,
+            height: bulletH,
+            speed: 25,
+            angle: 0
+        });
+        player.bullets.push({
+            x: player.x + player.width,
+            y: player.y + player.height / 2 - bulletH / 2 + 10, // aşağı çapraz
+            width: bulletW,
+            height: bulletH,
+            speed: 25,
+            angle: spread
+        });
+    } else {
+        player.bullets.push({
+            x: player.x + player.width,
+            y: player.y + player.height / 2 - bulletH / 2,
+            width: bulletW,
+            height: bulletH,
+            speed: 25,
+            angle: 0
+        });
     }
+    playSound(0);
 }
 
 function drawBullets() {
@@ -990,9 +990,7 @@ function endGame() {
         window.bossMusic.currentTime = 0;
     }
     gameOver = true;
-    document.getElementById('finalScoreValue').textContent = score;
-    document.getElementById('hiScoreValue').textContent = high_score;
-    document.getElementById('gameOver').style.display = 'block';
+    playerImage.src = "images/null.png";
     document.getElementById('controls').style.display = 'none';
     cancelAnimationFrame(animationId);
     clearInterval(enemySpawnInterval);
@@ -1336,7 +1334,7 @@ function drawEnemyBullets() {
         if (bullet.x < player.x + player.width && bullet.x + bullet.width > player.x &&
             bullet.y < player.y + player.height && bullet.y + bullet.height > player.y) {
             if (!player.shield) { // Kalkan yoksa hasar al
-                takeDamage(0.33333333333);
+                takeDamage(0.25);
             }
             enemyBullets.splice(index, 1);
         }
@@ -1541,6 +1539,8 @@ function resetGame() {
     waveTransitionStep = 0;
     waveDisplayTime = 0;
     waveDisplayText = "";
+    playerDead = false;
+    gameOverMusicPlayed = false;
 }
 function startGame() {
     document.getElementById('titleScreen').style.display = 'none';
@@ -1568,36 +1568,39 @@ window.startGame = startGame;
 
 // animate fonksiyonunun hemen altına ekle
 function animate() {
-    if (!gameOver) {
-        showHUDBar(true);
-        drawBackground();
-        if (waveTransition) {
-            waveTransitionAnimation();
-            drawPlayer();
-            drawWaveTransition();
-        } else {
-            drawPlayer();
-            movePlayer();
-            drawBullets();
-            drawEnemies();
-            drawEnemyBullets();
-            drawBossBullets();
-            drawExplosions();
-            drawHearts();
-            drawPowerUps();
-            checkPowerUpStatus();
-            createRandomPowerUp();
-            updatePowerupBar();
-        }
-        updateGameHUD();
-        animationId = requestAnimationFrame(animate);
-        if(high_score < score) {
-            high_score = score;
-            set("high_score", high_score);
-        }
+    showHUDBar(true);
+    drawBackground();
+    if (waveTransition) {
+        waveTransitionAnimation();
+        drawPlayer();
+        drawWaveTransition();
+    } else {
+        drawPlayer();
+        movePlayer();
+        drawBullets();
+        drawEnemies();
+        drawEnemyBullets();
+        drawBossBullets();
+        drawExplosions();
+        drawHearts();
+        drawPowerUps();
+        checkPowerUpStatus();
+        createRandomPowerUp();
+        updatePowerupBar();
     }
-    if (gameOver) {
-        showHUDBar(false);
+    if (gameOverMusicPlayed) {
+        ctx.save();
+        ctx.font = "bold 48px 'Press Start 2P', Arial";
+        ctx.fillStyle = 'white';
+        ctx.textAlign = 'center';
+        ctx.fillText('GAME OVER', canvas.width/2, canvas.height/2);
+        ctx.restore();
+    }
+    updateGameHUD();
+    animationId = requestAnimationFrame(animate);
+    if(high_score < score) {
+        high_score = score;
+        set("high_score", high_score);
     }
 }
 window.animate = animate;
@@ -1614,11 +1617,35 @@ function updateGameHUD() {
 window.updateGameHUD = updateGameHUD;
 
 function takeDamage(amount = 1.0) {
-    if (waveTransition) return;
+    if (waveTransition || playerDead || gameOver) return;
     player.hearts -= amount;
     playSound(2);
-    if (player.hearts <= 0) {
-        endGame();
+    if (player.hearts <= 0 && !playerDead && !gameOver) {
+        // Patlama efekti karakterin ortasında ve sadece bir kez
+        const explosionW = player.width;
+        const explosionH = player.height;
+        const explosionX = player.x + player.width / 2 - explosionW / 2;
+        const explosionY = player.y + player.height / 2 - explosionH / 2;
+        createExplosion(explosionX, explosionY, explosionW, explosionH); // default 10 frame
+        playerDead = true;
+        gameOver = true;
+        // Arka plan müziğini durdur
+        if (typeof window.music_audio !== 'undefined') {
+            window.music_audio.pause();
+            window.music_audio.currentTime = 0;
+        }
+        stopMusic && stopMusic();
+        playerImage.src = "images/null.png";
+        setTimeout(() => {
+            if (!gameOverMusicPlayed) {
+                let gameoverAudio = new Audio('sounds/gameover.mp3');
+                gameoverAudio.play();
+                gameOverMusicPlayed = true;
+            }
+        }, 3000);
+        setTimeout(() => {
+            window.location.reload();
+        }, 17000);
     }
 }
 window.takeDamage = takeDamage;
