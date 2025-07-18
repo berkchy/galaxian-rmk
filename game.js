@@ -1,3 +1,35 @@
+// --- SUPABASE MULTIPLAYER LOBBY ---
+// Supabase Functions Base URL (örnek: 'https://<proje_ref_kodu>.functions.supabase.co')
+const SUPABASE_FUNCTIONS_BASE = 'https://cjzmtpzjwpxskesvvyoj.functions.supabase.co'; // <-- Burayı kendi projenle değiştir!
+
+const FN_CREATE_LOBBY = SUPABASE_FUNCTIONS_BASE + '/create_lobby';
+const FN_JOIN_LOBBY = SUPABASE_FUNCTIONS_BASE + '/join_lobby';
+const FN_GET_PLAYERS = SUPABASE_FUNCTIONS_BASE + '/get_players';
+const FN_START_GAME = SUPABASE_FUNCTIONS_BASE + '/start_game';
+const FN_UPDATE_POSITION = SUPABASE_FUNCTIONS_BASE + '/update_position';
+
+let lobbyId = null;
+let playerId = null;
+let isOwner = false;
+let lobbyStatus = 'waiting';
+let playerName = '';
+let players = [];
+let lobbyPollInterval = null;
+let ownerId = null;
+let gameStarted = false;
+let lobbiesSubscription = null;
+let playersSubscription = null;
+
+async function postJson(url, body) {
+    const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+    });
+    return await res.json();
+}
+// --- SUPABASE MULTIPLAYER LOBBY ---
+
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 // updateGameObjectsOnResize fonksiyonu ve event listener'ları zaten tanımlıysa tekrar tanımlama!
@@ -29,7 +61,10 @@ function get(variable) {
 }
 
 let lastShotTime = 0;
-const shotCooldown = 250; // 0.25 saniye ateş etme hızı
+let musicTimer = 0;
+let musicPlaying = false;
+const shotCooldown = 170; // 0.25 saniye ateş etme hızı
+const enemies_spawn_x = 10;
 
 // Dalga sistemi ve geçiş animasyonu için değişkenler
 let wave = 1;
@@ -54,11 +89,11 @@ let menuPlayer = {
     y: canvas.height / 2 - 25, // Ekranın ortasında başla
     width: 50,
     height: 50,
-    speed: 8, // Hızı artırdım
+    speed: 5, // Hızı artırdım
     bullets: []
 };
 let menuLastShotTime = 0;
-let menuShotCooldown = 150; // 0.15 saniye ateş etme hızı (daha hızlı)
+let menuShotCooldown = 190; // 0.15 saniye ateş etme hızı (daha hızlı)
 
 // Görseller
 let playerImage = new Image();
@@ -316,17 +351,9 @@ function completeWave() {
     player.bullets = [];
     waveTransition = true;
     waveTransitionStep = 0;
-    if (typeof window.music_audio !== 'undefined') {
-        window.music_audio.pause();
-        window.music_audio.currentTime = 0;
-    }
-    playSound(5); // Start müziği (sounds/gamestart.mp3)
-    setTimeout(() => {
-        if (typeof window.music_audio !== 'undefined') {
-            window.music_audio.play();
-        }
-    }, 4800);
     showWaveMessage('WAVE ' + (wave-1) + ' COMPLETED!', 3200);
+    if (typeof enemySpawnInterval !== 'undefined') clearInterval(enemySpawnInterval);
+    enemySpawnInterval = setInterval(createEnemy, enemySpawnRate);
 }
 
 // drawPlayer fonksiyonunun tek ve doğru hali:
@@ -420,46 +447,27 @@ function drawBullets() {
     });
 }
 
+// Tek ve doğru createEnemy fonksiyonu:
 function createEnemy() {
     // Boss dalgası kontrolü
-    if (!waveTransition && enemiesRemaining > 0 && !waveCompleted) {
-        if (bossActive) return; // Boss varken normal düşman spawn olmasın
-        const createChance = Math.floor((Math.random() * 6) + 1);
-        if (createChance >= 5) {
-            let size = Math.random() * 20 + 45; // min 45, max 65
-            let y = Math.random() * (canvas.height - size);
-            let enemyImg = new Image();
-            let randomEnemyIndex = Math.floor(Math.random() * enemys.length);
-            enemyImg.src = enemys[randomEnemyIndex];
-            enemies.push({
-                x: canvas.width,
-                y: y,
-                width: size,
-                height: size,
-                speed: 2 * enemySpeedMultiplier,
-                initialY: y,
-                amplitude: 50,
-                frequency: 0.05,
-                image: enemyImg
-            });
-            enemiesRemaining--;
-        }
-    } else if (enemiesRemaining <= 0 && enemies.length === 0 && !waveTransition && !bossActive && (wave % 5 === 0) && !bossWave && wave > 0) {
-        // Normal düşmanlar bitti, boss dalgası zamanı
+    if (!waveTransition && !bossActive && !bossWave && (wave % 5 === 0) && wave > 0) {
+        enemies = [];
+        enemiesRemaining = 0;
+        if (typeof enemySpawnInterval !== 'undefined') clearInterval(enemySpawnInterval);
         let bossImg = new Image();
         let bossIndex = Math.floor(Math.random() * bossImages.length);
         bossImg.src = bossImages[bossIndex];
         boss = {
-            x: canvas.width + 40, // Sağdan başlasın
+            x: canvas.width + 40,
             y: canvas.height / 2 - 150,
             width: 300,
             height: 300,
-            speed: 4, // Ekrana girerken hızlıca gelsin
+            speed: 4,
             dir: 1,
             hp: 30 + wave * 10,
             maxHp: 30 + wave * 10,
             image: bossImg,
-            entered: false // Ekrana tam girdi mi?
+            entered: false
         };
         bossActive = true;
         bossWave = true;
@@ -467,11 +475,43 @@ function createEnemy() {
         bossBullets = [];
         bossAttackTimer = 0;
         bossAttackStep = 0;
-        stopMusic();
+        if (typeof music_audio !== 'undefined') {
+            music_audio.pause();
+            music_audio.currentTime = 0;
+        }
+        if (typeof musicID !== 'undefined') clearTimeout(musicID);
         bossMusic.currentTime = 0;
+        bossMusic.loop = true;
         bossMusic.play();
+        showWaveMessage('BOSS WAVE', 2500);
         return;
-    } else if (enemiesRemaining <= 0 && enemies.length === 0 && !waveTransition && !bossActive) {
+    }
+    // Normal düşmanlar
+    if (!waveTransition && enemiesRemaining > 0 && !bossActive && !(wave % 5 === 0 && wave > 0)) {
+        const createChance = Math.floor((Math.random() * 6) + 1);
+        if (createChance >= 5) {
+            let size = Math.random() * 20 + 45;
+            let y = Math.random() * (canvas.height - size);
+            let enemyImg = new Image();
+            let randomEnemyIndex = Math.floor(Math.random() * enemys.length);
+            enemyImg.src = enemys[randomEnemyIndex];
+            enemies.push({
+                x: canvas.width - enemies_spawn_x,
+                y: y,
+                width: size,
+                height: size,
+                speed: 2 * enemySpeedMultiplier,
+                initialY: y,
+                amplitude: 50,
+                frequency: 0.05,
+                image: enemyImg,
+                chaser: Math.random() < 0.2 // %20 şansla takipçi
+            });
+            enemiesRemaining--;
+        }
+    }
+    // Dalga bitti, boss yoksa ve boss dalgası değilse dalga tamamla
+    if (enemiesRemaining <= 0 && enemies.length === 0 && !waveTransition && !bossActive && !(wave % 5 === 0 && wave > 0)) {
         completeWave();
     }
 }
@@ -511,6 +551,7 @@ function drawEnemies() {
             boss = null;
             bossMusic.pause();
             bossMusic.currentTime = 0;
+            bossMusic.loop = false;
             setTimeout(() => { gameMusic(); }, 500);
             completeWave();
         }
@@ -530,8 +571,17 @@ function drawEnemies() {
         }
     }
     // Normal düşmanlar
+    const takipHizi = 2.2;
     enemies.forEach((enemy, index) => {
-        enemy.y = enemy.initialY + Math.sin(time + index) * 10;
+        if (enemy.chaser) {
+            // Takipçi düşman: y ekseninde oyuncuya yaklaş
+            if (Math.abs(player.y - enemy.y) > 2) {
+                enemy.y += Math.sign(player.y - enemy.y) * takipHizi;
+            }
+        } else {
+            // Klasik dalga hareketi
+            enemy.y = enemy.initialY + Math.sin(time + index) * 10;
+        }
         enemy.x -= enemy.speed;
         ctx.drawImage(enemy.image, enemy.x, enemy.y, enemy.width, enemy.height);
         createEnemyBulletRandom();
@@ -825,18 +875,46 @@ function drawBullets() {
 }
 
 function createEnemy() {
-    if (!waveTransition && enemiesRemaining > 0 && !waveCompleted) {
+    // Boss dalgası kontrolü
+    if (!waveTransition && !bossActive && !bossWave && (wave % 5 === 0) && wave > 0) {
+        let bossImg = new Image();
+        let bossIndex = Math.floor(Math.random() * bossImages.length);
+        bossImg.src = bossImages[bossIndex];
+        boss = {
+            x: canvas.width + 40,
+            y: canvas.height / 2 - 150,
+            width: 300,
+            height: 300,
+            speed: 4,
+            dir: 1,
+            hp: 30 + wave * 10,
+            maxHp: 30 + wave * 10,
+            image: bossImg,
+            entered: false
+        };
+        bossActive = true;
+        bossWave = true;
+        bossKilled = false;
+        bossBullets = [];
+        bossAttackTimer = 0;
+        bossAttackStep = 0;
+        stopMusic && stopMusic();
+        bossMusic.currentTime = 0;
+        bossMusic.play();
+        showWaveMessage('BOSS WAVE', 2500);
+        return;
+    }
+    // Normal düşmanlar
+    if (!waveTransition && enemiesRemaining > 0 && !bossActive && !(wave % 5 === 0 && wave > 0)) {
         const createChance = Math.floor((Math.random() * 6) + 1);
         if (createChance >= 5) {
-            let size = Math.random() * 20 + 45; // min 45, max 65
+            let size = Math.random() * 20 + 45;
             let y = Math.random() * (canvas.height - size);
-            
             let enemyImg = new Image();
             let randomEnemyIndex = Math.floor(Math.random() * enemys.length);
             enemyImg.src = enemys[randomEnemyIndex];
-
             enemies.push({
-                x: canvas.width,
+                x: canvas.width - enemies_spawn_x,
                 y: y,
                 width: size,
                 height: size,
@@ -844,12 +922,14 @@ function createEnemy() {
                 initialY: y,
                 amplitude: 50,
                 frequency: 0.05,
-                image: enemyImg
+                image: enemyImg,
+                chaser: Math.random() < 0.2 // %20 şansla takipçi
             });
-            
             enemiesRemaining--;
         }
-    } else if (enemiesRemaining <= 0 && enemies.length === 0 && !waveTransition) {
+    }
+    // Dalga bitti, boss yoksa ve boss dalgası değilse dalga tamamla
+    if (enemiesRemaining <= 0 && enemies.length === 0 && !waveTransition && !bossActive && !(wave % 5 === 0 && wave > 0)) {
         completeWave();
     }
 }
@@ -881,6 +961,7 @@ function drawEnemies() {
             boss = null;
             bossMusic.pause();
             bossMusic.currentTime = 0;
+            bossMusic.loop = false;
             setTimeout(() => { gameMusic(); }, 500);
             completeWave();
         }
@@ -898,8 +979,17 @@ function drawEnemies() {
         }
     }
     // Normal düşmanlar
+    const takipHizi = 2.2;
     enemies.forEach((enemy, index) => {
-        enemy.y = enemy.initialY + Math.sin(time + index) * 10;
+        if (enemy.chaser) {
+            // Takipçi düşman: y ekseninde oyuncuya yaklaş
+            if (Math.abs(player.y - enemy.y) > 2) {
+                enemy.y += Math.sign(player.y - enemy.y) * takipHizi;
+            }
+        } else {
+            // Klasik dalga hareketi
+            enemy.y = enemy.initialY + Math.sin(time + index) * 10;
+        }
         enemy.x -= enemy.speed;
         
         ctx.drawImage(enemy.image, enemy.x, enemy.y, enemy.width, enemy.height);
@@ -1069,6 +1159,7 @@ function stopMusic() {
 
 function gameMusic() {
     if (gameOver) return;
+    if (bossActive) return;
     music_audio.play();
     musicID = setTimeout(() => { gameMusic(); }, (85 * 1000));
 }
@@ -1602,6 +1693,15 @@ function animate() {
         high_score = score;
         set("high_score", high_score);
     }
+    // Müzik sayaç mantığı
+    if (!bossActive && !gameOver && !waveTransition) {
+        musicTimer++;
+        if (!musicPlaying && musicTimer > 60*10) { // 10 saniye sonra tekrar başlat
+            gameMusic();
+            musicPlaying = true;
+            musicTimer = 0;
+        }
+    }
 }
 window.animate = animate;
 
@@ -1719,3 +1819,359 @@ function showWaveMessage(text, duration = 1800) {
     }, duration);
 }
 window.showWaveMessage = showWaveMessage;
+
+// --- LOBBY UI & SUPABASE ENTEGRASYONU ---
+document.addEventListener('DOMContentLoaded', () => {
+    // UI elementleri
+    const lobbyMenu = document.getElementById('lobbyMenu');
+    const lobbyCreateJoin = document.getElementById('lobbyCreateJoin');
+    const lobbyWait = document.getElementById('lobbyWait');
+    const createLobbyBtn = document.getElementById('createLobbyBtn');
+    const joinLobbyBtn = document.getElementById('joinLobbyBtn');
+    const startGameBtn = document.getElementById('startGameBtn');
+    const leaveLobbyBtn = document.getElementById('leaveLobbyBtn');
+    const playerNameInput = document.getElementById('playerNameInput');
+    const joinLobbyIdInput = document.getElementById('joinLobbyIdInput');
+    const lobbyIdDisplay = document.getElementById('lobbyIdDisplay');
+    const playerList = document.getElementById('playerList');
+    const waitInfo = document.getElementById('waitInfo');
+
+    // Lobi oluştur
+    createLobbyBtn.onclick = async () => {
+        playerName = playerNameInput.value.trim();
+        const ownerUuid = crypto.randomUUID();
+        const res = await postJson(FN_CREATE_LOBBY, { owner_id: ownerUuid, name: playerName });
+        if (res.lobby && res.player) {
+            lobbyId = res.lobby.id;
+            playerId = res.player.id;
+            isOwner = true;
+            lobbyStatus = res.lobby.status;
+            ownerId = ownerUuid; // Lobi sahibi id'sini sakla
+            showLobbyWait();
+            pollLobbyPlayers();
+            subscribePlayersRealtime();
+        } else {
+            alert(res.error || 'Lobi oluşturulamadı!');
+        }
+    };
+
+    // Lobiye katıl
+    joinLobbyBtn.onclick = async () => {
+        playerName = playerNameInput.value.trim();
+        const joinId = joinLobbyIdInput.value.trim();
+        if (!joinId) return alert('Lobi kodu gir!');
+        const res = await postJson(FN_JOIN_LOBBY, { lobby_id: joinId, name: playerName });
+        if (res.player) {
+            lobbyId = joinId;
+            playerId = res.player.id;
+            isOwner = false;
+            lobbyStatus = 'waiting';
+            showLobbyWait();
+            // Lobi status'unu kontrol et
+            const lobbyRes = await postJson(FN_GET_PLAYERS, { lobby_id: lobbyId });
+            if (lobbyRes.status === 'started') {
+                lobbyStatus = 'started';
+                if (lobbyRes.players) players = lobbyRes.players;
+                startMultiplayerGame();
+            } else {
+                pollLobbyPlayers();
+            }
+            subscribePlayersRealtime();
+        } else {
+            alert(res.error || 'Lobiye katılım başarısız!');
+        }
+    };
+
+    // Oyunu başlat (sadece owner)
+    startGameBtn.onclick = async () => {
+        if (!isOwner) return;
+        const res = await postJson(FN_START_GAME, { lobby_id: lobbyId, owner_id: ownerId });
+        if (res.lobby && res.lobby.status === 'started') {
+            lobbyStatus = 'started';
+            startMultiplayerGame();
+        } else {
+            alert(res.error || 'Oyun başlatılamadı!');
+        }
+    };
+
+    // Lobiden çık
+    leaveLobbyBtn.onclick = async () => {
+        // Oyuncu kaydını ve gerekirse lobiyi sil
+        if (playerId) {
+            await postJson(SUPABASE_FUNCTIONS_BASE + '/leave_lobby', { player_id: playerId });
+        }
+        resetLobbyUI();
+        if (playersSubscription) playersSubscription.unsubscribe();
+    };
+
+    function showLobbyWait() {
+        lobbyCreateJoin.style.display = 'none';
+        lobbyWait.style.display = 'flex';
+        lobbyIdDisplay.value = lobbyId;
+        startGameBtn.style.display = isOwner ? 'block' : 'none';
+    }
+    function resetLobbyUI() {
+        lobbyCreateJoin.style.display = 'flex';
+        lobbyWait.style.display = 'none';
+        lobbyId = null;
+        playerId = null;
+        isOwner = false;
+        lobbyStatus = 'waiting';
+        playerName = '';
+        players = [];
+        clearInterval(lobbyPollInterval);
+        updatePlayerList([]);
+    }
+    function updatePlayerList(list) {
+        playerList.innerHTML = '';
+        list.forEach(p => {
+            const li = document.createElement('li');
+            li.textContent = p.name + (p.is_owner ? ' (Sahip)' : '');
+            playerList.appendChild(li);
+        });
+    }
+    async function pollLobbyPlayers() {
+        clearInterval(lobbyPollInterval);
+        const poll = async () => {
+            if (!lobbyId) return;
+            const res = await postJson(FN_GET_PLAYERS, { lobby_id: lobbyId });
+            if (res.players) {
+                players = res.players;
+                updatePlayerList(players);
+            }
+            // Lobi status kontrolü (oyun başladı mı?)
+            if (!gameStarted && res.status === 'started') {
+                lobbyStatus = 'started';
+                gameStarted = true;
+                // En güncel oyuncu listesini çek
+                const latest = await postJson(FN_GET_PLAYERS, { lobby_id: lobbyId });
+                if (latest.players) players = latest.players;
+                startMultiplayerGame();
+            }
+        };
+        lobbyPollInterval = setInterval(poll, 1500);
+        poll();
+    }
+    async function fetchLobbyStatus() {
+        // Lobi status'unu almak için lobbies tablosuna bakmak gerekir, burada basitçe oyuncu sayısı ve owner'ın status'unu kontrol ediyoruz
+        // Oyun başladıysa başlat
+        if (!lobbyId) return;
+        // get_players fonksiyonu ile status gelmiyorsa, ek bir fonksiyon gerekebilir. Şimdilik owner'ın status'unu kontrol edelim.
+        // Eğer bir oyuncunun is_owner ve status'u started ise başlat
+        if (players.length > 0 && lobbyStatus === 'waiting') {
+            // Oyun owner'ı status'u started ise başlat
+            // (Burada daha iyi bir kontrol için get_lobby_status fonksiyonu eklenebilir)
+        }
+    }
+    // Multiplayer oyun başlat
+    function startMultiplayerGame() {
+        if (gameStarted) return; // Oyun zaten başladıysa tekrar başlatma
+        gameStarted = true;
+        document.getElementById('titleScreen').style.display = 'none';
+        clearInterval(lobbyPollInterval);
+
+        if (typeof stopMenuAnimation === 'function') stopMenuAnimation();
+
+        window.multiplayerPlayers = {};
+        window.multiplayerPlayers[playerId] = {
+            id: playerId,
+            name: playerName || 'Bilinmeyen',
+            x: 100,
+            y: canvas.height / 2 - 25,
+            isSelf: true
+        };
+        players.forEach(p => {
+            if (p.id !== playerId) {
+                window.multiplayerPlayers[p.id] = {
+                    id: p.id,
+                    name: p.name,
+                    x: 100,
+                    y: canvas.height / 2 - 25,
+                    isSelf: false
+                };
+            }
+        });
+        startMultiplayerLoop();
+
+        if (typeof resetGame === 'function') resetGame();
+        if (typeof startGame === 'function') startGame();
+    }
+
+    function startMultiplayerLoop() {
+        // Kendi pozisyonunu Supabase'e yaz ve diğer oyuncuları çek
+        setInterval(async () => {
+            // Kendi pozisyonunu güncelle
+            await postJson(FN_UPDATE_POSITION, { player_id: playerId, x: player.x, y: player.y });
+            // Diğer oyuncuları çek
+            const res = await postJson(FN_GET_PLAYERS, { lobby_id: lobbyId });
+            if (res.players) {
+                res.players.forEach(p => {
+                    if (p.id !== playerId) {
+                        if (!window.multiplayerPlayers[p.id]) {
+                            window.multiplayerPlayers[p.id] = { id: p.id, name: p.name, x: p.x, y: p.y, isSelf: false };
+                        } else {
+                            window.multiplayerPlayers[p.id].x = p.x;
+                            window.multiplayerPlayers[p.id].y = p.y;
+                        }
+                    }
+                });
+            }
+        }, 200);
+    }
+
+    // Oyuncuları çizmek için ana oyun döngüsüne ekle
+    const originalDrawPlayer = window.drawPlayer || function(){};
+    window.drawPlayer = function() {
+        // Multiplayer oyuncular
+        if (window.multiplayerPlayers) {
+            Object.values(window.multiplayerPlayers).forEach(p => {
+                ctx.save();
+                if (!p.isSelf) ctx.globalAlpha = 0.4;
+                ctx.drawImage(playerImage, p.x, p.y, 50, 50);
+                ctx.globalAlpha = 1.0;
+                // İsim etiketi
+                ctx.font = '14px Roboto';
+                ctx.fillStyle = p.isSelf ? '#fff' : '#aaa';
+                ctx.textAlign = 'center';
+                ctx.fillText(p.name, p.x + 25, p.y - 8);
+                ctx.restore();
+            });
+        } else {
+            // Tek oyunculu mod
+            originalDrawPlayer();
+        }
+    };
+
+    // Lobi kodu kopyala ve paylaş butonları
+    const copyLobbyIdBtn = document.getElementById('copyLobbyIdBtn');
+    const shareLobbyIdBtn = document.getElementById('shareLobbyIdBtn');
+    copyLobbyIdBtn.onclick = () => {
+        if (lobbyIdDisplay.value) {
+            navigator.clipboard.writeText(lobbyIdDisplay.value);
+            copyLobbyIdBtn.innerHTML = '<span class="material-icons">check</span>';
+            setTimeout(() => { copyLobbyIdBtn.innerHTML = '<span class="material-icons">content_copy</span>'; }, 1200);
+        }
+    };
+    shareLobbyIdBtn.onclick = () => {
+        if (navigator.share && lobbyIdDisplay.value) {
+            navigator.share({
+                title: 'Galaxian Lobi Kodu',
+                text: 'Galaxian oyun lobisine katılmak için bu kodu kullan: ' + lobbyIdDisplay.value,
+                url: window.location.href
+            });
+        } else {
+            copyLobbyIdBtn.click();
+        }
+    };
+
+    // ODA LİSTESİ POPUP
+    const showRoomsBtn = document.getElementById('showRoomsBtn');
+    const roomsPopup = document.getElementById('roomsPopup');
+    const closeRoomsPopup = document.getElementById('closeRoomsPopup');
+    const roomsList = document.getElementById('roomsList');
+
+    showRoomsBtn.onclick = async () => {
+        roomsPopup.style.display = 'flex';
+        subscribeLobbiesRealtime();
+        roomsList.innerHTML = '<div style="text-align:center; color:#888; margin:24px 0;">Yükleniyor...</div>';
+        // Supabase'den aktif lobileri çek
+        const res = await fetch(`${SUPABASE_FUNCTIONS_BASE}/get_rooms`, { method: 'POST', headers: { 'Content-Type': 'application/json' } });
+        const data = await res.json();
+        if (data.rooms && data.rooms.length > 0) {
+            roomsList.innerHTML = '';
+            data.rooms.forEach(room => {
+                const div = document.createElement('div');
+                div.style = 'display:flex; align-items:center; gap:16px; background:#f5f5fa; border-radius:10px; margin-bottom:12px; padding:12px 16px;';
+                div.innerHTML = `
+                    <span class="material-icons" style="font-size:2rem; color:#6750A4;">person</span>
+                    <span style="font-size:1.1rem; font-weight:600; color:#333; margin-right:8px;">${room.owner_name || 'Bilinmeyen'}</span>
+                    <span style="display:flex; align-items:center; gap:4px; color:#333;"><span class="material-icons" style="font-size:1.2rem;">group</span> ${room.player_count}</span>
+                    <input value="${room.id}" readonly style="width:120px; background:#fff; border:1px solid #ccc; border-radius:6px; padding:2px 8px; font-size:1rem; text-align:center; letter-spacing:1px;" />
+                    <button class="btn elevation-1" style="min-width:unset; width:40px; padding:0; font-size:1.2rem; background:#d0bcff; color:#381e72;" title="Katıl"><span class="material-icons">login</span></button>
+                `;
+                // Katıl butonu
+                div.querySelector('button').onclick = () => {
+                    roomsPopup.style.display = 'none';
+                    joinLobbyIdInput.value = room.id;
+                    joinLobbyBtn.click();
+                };
+                roomsList.appendChild(div);
+            });
+        } else {
+            roomsList.innerHTML = '<div style="text-align:center; color:#888; margin:24px 0;">Aktif oda yok.</div>';
+        }
+    };
+    closeRoomsPopup.onclick = () => { roomsPopup.style.display = 'none'; };
+});
+// --- LOBBY UI & SUPABASE ENTEGRASYONU ---
+
+// Oyun döngüsünde kendi pozisyonunu multiplayerPlayers[playerId]'ye aktar
+// animate fonksiyonunun başına ekle
+const originalAnimate = typeof animate === 'function' ? animate : null;
+window.animate = function() {
+    if (window.multiplayerPlayers && window.multiplayerPlayers[playerId]) {
+        window.multiplayerPlayers[playerId].x = player.x;
+        window.multiplayerPlayers[playerId].y = player.y;
+    }
+    if (originalAnimate) originalAnimate();
+}
+
+// --- SUPABASE REALTIME ---
+const SUPABASE_URL = 'https://cjzmtpzjwpxskesvvyoj.supabase.co'; // kendi projenle değiştir
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNqem10cHpqd3B4c2tlc3Z2eW9qIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI4NTc5NjYsImV4cCI6MjA2ODQzMzk2Nn0.WARXx5ULZTuEXG8uepHyMLyNpHvdKiM0J-PuzCm-_Ik';
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// Oda popup açıkken lobbies tablosunu dinle
+function subscribeLobbiesRealtime() {
+    if (lobbiesSubscription) lobbiesSubscription.unsubscribe();
+    lobbiesSubscription = supabase.channel('lobbies-list')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'lobbies' }, payload => {
+            if (roomsPopup.style.display === 'flex') showRoomsBtn.onclick(); // popup açıksa anında güncelle
+        })
+        .subscribe();
+}
+
+// Odaya girince players tablosunu dinle
+function subscribePlayersRealtime() {
+    if (playersSubscription) playersSubscription.unsubscribe();
+    if (!lobbyId) return;
+    playersSubscription = supabase.channel('players-' + lobbyId)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'players', filter: `lobby_id=eq.${lobbyId}` }, payload => {
+            pollLobbyPlayers(); // oyuncu listesi ve oyun durumu anında güncellensin
+        })
+        .subscribe();
+}
+
+// Oda popup açıldığında lobbies tablosunu dinle
+showRoomsBtn.onclick = async () => {
+    roomsPopup.style.display = 'flex';
+    subscribeLobbiesRealtime();
+    roomsList.innerHTML = '<div style="text-align:center; color:#888; margin:24px 0;">Yükleniyor...</div>';
+    // Supabase'den aktif lobileri çek
+    const res = await fetch(`${SUPABASE_FUNCTIONS_BASE}/get_rooms`, { method: 'POST', headers: { 'Content-Type': 'application/json' } });
+    const data = await res.json();
+    if (data.rooms && data.rooms.length > 0) {
+        roomsList.innerHTML = '';
+        data.rooms.forEach(room => {
+            const div = document.createElement('div');
+            div.style = 'display:flex; align-items:center; gap:16px; background:#f5f5fa; border-radius:10px; margin-bottom:12px; padding:12px 16px;';
+            div.innerHTML = `
+                <span class="material-icons" style="font-size:2rem; color:#6750A4;">person</span>
+                <span style="font-size:1.1rem; font-weight:600; color:#333; margin-right:8px;">${room.owner_name || 'Bilinmeyen'}</span>
+                <span style="display:flex; align-items:center; gap:4px; color:#333;"><span class="material-icons" style="font-size:1.2rem;">group</span> ${room.player_count}</span>
+                <input value="${room.id}" readonly style="width:120px; background:#fff; border:1px solid #ccc; border-radius:6px; padding:2px 8px; font-size:1rem; text-align:center; letter-spacing:1px;" />
+                <button class="btn elevation-1" style="min-width:unset; width:40px; padding:0; font-size:1.2rem; background:#d0bcff; color:#381e72;" title="Katıl"><span class="material-icons">login</span></button>
+            `;
+            // Katıl butonu
+            div.querySelector('button').onclick = () => {
+                roomsPopup.style.display = 'none';
+                joinLobbyIdInput.value = room.id;
+                joinLobbyBtn.click();
+            };
+            roomsList.appendChild(div);
+        });
+    } else {
+        roomsList.innerHTML = '<div style="text-align:center; color:#888; margin:24px 0;">Aktif oda yok.</div>';
+    }
+}
+// --- SUPABASE REALTIME ---

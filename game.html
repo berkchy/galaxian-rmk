@@ -63,7 +63,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            pointer-events: none;
+            pointer-events: auto;
         }
 
         #titleScreen {
@@ -556,9 +556,37 @@
         <div id="titleScreen">
             <h1 class="game-title">Galaxian</h1>
             <button id="start" class="btn elevation-1">
-                <span class="material-icons">play_arrow</span>
-                Start Game
+                <span style="font-size: 36px;" class="material-icons">play_arrow</span>
             </button>
+            <button id="showRoomsBtn" class="btn elevation-1" style="background:#fff; color:#333; min-width:120px; margin-top:8px;">
+                <span class="material-icons">meeting_room</span> Odalar
+            </button>
+            <!-- LOBBY UI BAŞLANGIÇ -->
+            <div id="lobbyMenu" style="margin-top:32px; display:flex; flex-direction:column; gap:16px; align-items:center;">
+                <div id="lobbyCreateJoin" style="display:flex; flex-direction:column; gap:12px; align-items:center;">
+                    <input id="playerNameInput" type="text" maxlength="16" placeholder="İsminiz (isteğe bağlı)" style="padding:8px 16px; border-radius:8px; border:1px solid #ccc; font-size:1rem;">
+                    <button id="createLobbyBtn" class="btn elevation-1">Lobi Oluştur</button>
+                    <div style="display:flex; gap:8px; align-items:center;">
+                        <input id="joinLobbyIdInput" type="text" maxlength="36" placeholder="Lobi Kodu" style="padding:8px 16px; border-radius:8px; border:1px solid #ccc; font-size:1rem;">
+                        <button id="joinLobbyBtn" class="btn elevation-1">Lobiye Katıl</button>
+                    </div>
+                </div>
+                <div id="lobbyWait" style="display:none; flex-direction:column; gap:12px; align-items:center;">
+                    <div style="font-size:1.1rem; margin-bottom:8px; display:flex; align-items:center; gap:8px;">
+                        <input id="lobbyIdDisplay" readonly style="font-weight:700; font-size:1.1rem; background:#f5f5fa; border:1px solid #ccc; border-radius:6px; padding:4px 12px; width:180px; text-align:center; letter-spacing:1px;" />
+                        <button id="copyLobbyIdBtn" class="btn elevation-1" style="min-width:unset; width:40px; padding:0; font-size:1.2rem;" title="Kopyala"><span class="material-icons">content_copy</span></button>
+                        <button id="shareLobbyIdBtn" class="btn elevation-1" style="min-width:unset; width:40px; padding:0; font-size:1.2rem;" title="Paylaş"><span class="material-icons">share</span></button>
+                    </div>
+                    <div id="playerListBox" style="background:#fff2; border-radius:8px; padding:12px 24px; min-width:200px;">
+                        <div style="font-weight:600; margin-bottom:6px;">Oyuncular:</div>
+                        <ul id="playerList" style="list-style:none; padding:0; margin:0;"></ul>
+                    </div>
+                    <button id="startGameBtn" class="btn elevation-1" style="display:none;">Oyunu Başlat</button>
+                    <div id="waitInfo" style="font-size:0.95rem; color:#888; margin-top:8px;">Lobi sahibi oyunu başlatabilir.</div>
+                    <button id="leaveLobbyBtn" class="btn elevation-1" style="background:#eee; color:#333; margin-top:8px;">Lobiden Çık</button>
+                </div>
+            </div>
+            <!-- LOBBY UI BİTİŞ -->
         </div>
         
         <div id="gameOver">
@@ -585,6 +613,16 @@
             <button id="soundButton" class="sound-btn elevation-2">
                 <span class="material-icons">volume_up</span>
             </button>
+        </div>
+    </div>
+
+    <!-- ODA LİSTESİ POPUP -->
+    <div id="roomsPopup" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; z-index:999;">
+        <div style="position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.8); z-index:1;"></div>
+        <div style="background:#fff; border-radius:18px; box-shadow:0 4px 24px #0005; padding:32px 24px; min-width:340px; max-width:95vw; max-height:80vh; overflow-y:auto; position:relative; z-index:2; margin:auto; top:0; left:0; right:0; bottom:0; display:flex; flex-direction:column; align-items:center; justify-content:center;">
+            <button id="closeRoomsPopup" style="position:absolute; top:12px; right:12px; background:none; border:none; cursor:pointer; font-size:1.6rem; color:#888;"><span class="material-icons">close</span></button>
+            <h2 style="margin-top:0; margin-bottom:18px; font-size:1.3rem; display:flex; align-items:center; gap:8px;"><span class="material-icons">meeting_room</span> Aktif Odalar</h2>
+            <div id="roomsList"></div>
         </div>
     </div>
 
@@ -634,6 +672,7 @@
         window.addEventListener('resize', resizeGameCanvas);
         window.addEventListener('DOMContentLoaded', resizeGameCanvas);
     </script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.7/dist/umd/supabase.min.js"></script>
     <script src="game.js"></script>
     <div class="rpg-ui-bar" id="rpg-ui-bar" style="opacity:0; pointer-events:none;">
         <div class="rpg-ui-box score"><span class="material-icons">star</span><span id="mui-score">0</span></div>
