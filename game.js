@@ -2136,8 +2136,8 @@ function subscribePlayersRealtime() {
     if (playersSubscription) playersSubscription.unsubscribe();
     if (!lobbyId) return;
     playersSubscription = supabase.channel('players-' + lobbyId)
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'players', filter: `lobby_id=eq.${lobbyId}` }, payload => {
-            pollLobbyPlayers(); // oyuncu listesi ve oyun durumu anında güncellensin
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'players', filter: `lobby_id=eq.${lobbyId}` }, async payload => {
+            await pollLobbyPlayers();
         })
         .subscribe();
 }
