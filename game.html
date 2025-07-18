@@ -3,25 +3,128 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Galaxian - Space Shooter</title>
-    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+    <title>Galaxian | Material Space Shooter</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     <style>
-        body {
-            margin: 0;
-            overflow: hidden;
-            background: radial-gradient(circle, #0f0c29, #302b63, #24243e);
-            color: #fff;
-            font-family: 'Orbitron', 'Press Start 2P', sans-serif;
-            user-select: none;
-            -webkit-user-select: none;
-            -webkit-tap-highlight-color: transparent;
-            touch-action: manipulation;
+        :root {
+            --primary: #6750A4;
+            --on-primary: #FFFFFF;
+            --primary-container: #EADDFF;
+            --on-primary-container: #21005D;
+            --surface: #FEF7FF;
+            --on-surface: #1C1B1F;
+            --surface-variant: #E7E0EC;
+            --on-surface-variant: #49454F;
+            --outline: #79747E;
+            --error: #B3261E;
+            --on-error: #FFFFFF;
         }
 
-        canvas {
-            background: linear-gradient(to bottom, #000428, #004e92);
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --primary: #D0BCFF;
+                --on-primary: #381E72;
+                --primary-container: #4F378B;
+                --on-primary-container: #EADDFF;
+                --surface: #1C1B1F;
+                --on-surface: #E6E1E5;
+                --surface-variant: #49454F;
+                --on-surface-variant: #CAC4D0;
+                --outline: #938F99;
+                --error: #F2B8B5;
+                --on-error: #601410;
+            }
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: var(--surface);
+            color: var(--on-surface);
+            font-family: 'Roboto', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+            -webkit-user-select: none;
+            user-select: none;
+            height: 100vh;
+            transition: background-color 0.3s;
+        }
+
+        #gameCanvas {
             display: block;
-            box-shadow: 0 0 50px rgba(0, 150, 255, 0.3);
+            background-color: #121212;
+            margin: 0 auto;
+        }
+
+        #uiContainer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        #titleScreen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background-color: rgba(28, 27, 31, 0.45);
+            z-index: 100;
+            gap: 24px;
+        }
+
+        .game-title {
+            color: var(--primary);
+            font-size: 3rem;
+            font-weight: 500;
+            margin: 0;
+            text-align: center;
+        }
+
+        .btn {
+            pointer-events: auto;
+            padding: 16px 24px;
+            background-color: var(--primary);
+            color: var(--on-primary);
+            border: none;
+            border-radius: 100px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin: 8px;
+            min-width: 200px;
+            text-align: center;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            height: 40px;
+        }
+
+        .btn:hover {
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+            transform: translateY(-1px);
+        }
+
+        .btn:active {
+            transform: translateY(1px);
+            box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+        }
+
+        .btn .material-icons {
+            font-size: 20px;
         }
 
         #gameOver {
@@ -29,301 +132,562 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            text-align: center;
-            background: rgba(0, 0, 0, 0.8);
-            padding: 30px;
+            background: var(--surface-variant);
+            color: var(--on-surface-variant);
             border-radius: 20px;
-            border: 2px solid #00ffff;
-            box-shadow: 0 0 30px rgba(0, 255, 255, 0.5);
+            box-shadow: 0 4px 16px #0002;
+            padding: 38px 4vw 28px 4vw;
+            text-align: center;
             display: none;
-            z-index: 100;
-            backdrop-filter: blur(5px);
+            z-index: 200;
+            width: 92vw;
+            max-width: 420px;
+            min-width: 220px;
+            border: 1.5px solid var(--outline);
+            font-family: 'Roboto', 'Segoe UI', Arial, sans-serif;
+            font-weight: 500;
         }
-
         #gameOver h1 {
-            color: #ff5555;
-            font-size: 3em;
-            text-shadow: 0 0 10px #ff0000;
-            margin-bottom: 20px;
-            animation: pulse 1.5s infinite;
+            color: var(--primary);
+            margin: 0 0 18px 0;
+            font-size: 2.1rem;
+            font-weight: 800;
+            letter-spacing: 1.5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
         }
-
-        @keyframes pulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.05); }
-            100% { transform: scale(1); }
+        #gameOver h1 .material-icons {
+            font-size: 2.2rem;
+            color: var(--error);
+            vertical-align: middle;
+            filter: drop-shadow(0 2px 6px #B3261E44);
         }
-
         #finalScore {
-            font-size: 1.5em;
-            color: #88e611;
-            margin: 20px 0;
-            text-shadow: 0 0 5px #88e611;
+            color: var(--primary);
+            font-size: 1.25rem;
+            margin: 18px 0 10px 0;
+            font-weight: 700;
+            letter-spacing: 0.7px;
+            background: var(--primary-container);
+            border-radius: 8px;
+            padding: 8px 0;
+            box-shadow: 0 1px 4px #6750A422;
         }
-
-        #restart {
-            padding: 15px 40px;
-            background: linear-gradient(145deg, #88e611, #6ec20e);
-            color: #000;
-            border: none;
-            border-radius: 50px;
-            cursor: pointer;
-            font-size: 1.2em;
-            font-weight: bold;
-            font-family: 'Orbitron', sans-serif;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            box-shadow: 0 5px 15px rgba(136, 230, 17, 0.4);
-            transition: all 0.3s;
-            position: relative;
-            overflow: hidden;
+        #hiScoreBox {
+            color: var(--primary);
+            font-size: 1.08rem;
+            font-weight: 600;
+            background: var(--primary-container);
+            border-radius: 8px;
+            padding: 6px 0;
+            margin-bottom: 10px;
+            box-shadow: 0 1px 4px #6750A422;
         }
-
-        #restart:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 8px 20px rgba(136, 230, 17, 0.6);
-        }
-
-        #restart:active {
-            transform: translateY(1px);
-        }
-
-        #restart::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
+        #gameOver .btn {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 18px auto 0 auto;
             width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-            transform: translateX(-100%);
-            transition: transform 0.6s;
+            max-width: 220px;
+            font-size: 1.15rem;
+            font-weight: 700;
+            border-radius: 100px;
+            box-shadow: 0 2px 12px #6750A444;
+            background: var(--primary);
+            color: var(--on-primary);
+            border: none;
+            transition: box-shadow 0.2s, background 0.2s, transform 0.15s;
+            letter-spacing: 0.5px;
         }
-
-        #restart:hover::after {
-            transform: translateX(100%);
+        #gameOver .btn:hover {
+            box-shadow: 0 6px 24px #6750A488;
+            background: var(--primary-container);
+            color: var(--primary);
+            transform: scale(1.04);
+        }
+        #gameOver .gameover-msg {
+            color: var(--on-surface-variant);
+            font-size: 1.02rem;
+            margin-top: 18px;
+            letter-spacing: 0.2px;
+            font-weight: 400;
         }
 
         #controls {
             position: fixed;
-            bottom: 30px;
-            left: 30px;
+            bottom: 24px;
+            left: 24px;
             display: none;
-            gap: 15px;
-            z-index: 50;
+            gap: 16px;
+            pointer-events: auto;
         }
 
-        #titleScreen {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            text-align: center;
-            background: rgba(0, 0, 0, 0.7);
-            padding: 40px;
-            border-radius: 20px;
-            border: 2px solid #88e611;
-            box-shadow: 0 0 40px rgba(136, 230, 17, 0.3);
-            backdrop-filter: blur(5px);
-            max-width: 80%;
-        }
-
-        #titleScreen h3 {
-            font-size: 3em;
-            color: #88e611;
-            text-shadow: 0 0 10px #88e611;
-            margin-bottom: 30px;
-            letter-spacing: 3px;
-            animation: glow 2s infinite alternate;
-        }
-
-        @keyframes glow {
-            from { text-shadow: 0 0 10px #88e611; }
-            to { text-shadow: 0 0 20px #88e611, 0 0 30px #6ec20e; }
-        }
-
-        #start {
-            padding: 15px 40px;
-            background: linear-gradient(145deg, #00b4db, #0083b0);
-            color: white;
+        .control-btn {
+            width: 56px;
+            height: 56px;
+            background-color: var(--primary-container);
+            color: var(--on-primary-container);
             border: none;
-            border-radius: 50px;
-            cursor: pointer;
-            font-size: 1.2em;
-            font-weight: bold;
-            font-family: 'Orbitron', sans-serif;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            box-shadow: 0 5px 15px rgba(0, 180, 219, 0.4);
-            transition: all 0.3s;
-            position: relative;
-            overflow: hidden;
-        }
-
-        #start:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 8px 20px rgba(0, 180, 219, 0.6);
-        }
-
-        #start:active {
-            transform: translateY(1px);
-        }
-
-        #start::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-            transform: translateX(-100%);
-            transition: transform 0.6s;
-        }
-
-        #start:hover::after {
-            transform: translateX(100%);
-        }
-
-        .button {
-            width: 70px;
-            height: 70px;
-            background: rgba(0, 180, 219, 0.2);
-            border: 2px solid #00b4db;
-            border-radius: 50%;
-            cursor: pointer;
-            transition: all 0.3s;
+            border-radius: 16px;
             display: flex;
             justify-content: center;
             align-items: center;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
-            backdrop-filter: blur(5px);
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
 
-        .button:hover {
-            background: rgba(0, 180, 219, 0.4);
-            transform: scale(1.1);
+        .control-btn:hover {
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
         }
 
-        .button:active {
+        .control-btn:active {
             transform: scale(0.95);
         }
 
-        .button img {
-            width: 40px;
-            height: 40px;
-            pointer-events: none;
-            -webkit-user-drag: none;
+        .control-btn .material-icons {
+            font-size: 24px;
         }
 
         #soundControls {
             position: fixed;
-            bottom: 30px;
-            right: 30px;
-            display: flex;
-            gap: 15px;
-            z-index: 50;
+            bottom: 24px;
+            right: 24px;
+            pointer-events: auto;
         }
 
-        .soundButton {
-            width: 60px;
-            height: 60px;
-            background: rgba(255, 255, 255, 0.1);
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            border-radius: 50%;
-            cursor: pointer;
-            font-size: 24px;
-            color: white;
+        .sound-btn {
+            width: 56px;
+            height: 56px;
+            background-color: var(--surface-variant);
+            color: var(--on-surface-variant);
+            border: none;
+            border-radius: 16px;
             display: flex;
             justify-content: center;
             align-items: center;
-            transition: all 0.3s;
-            backdrop-filter: blur(5px);
+            cursor: pointer;
+            font-size: 24px;
+            transition: all 0.2s;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
 
-        .soundButton:hover {
-            background: rgba(255, 255, 255, 0.2);
-            transform: scale(1.1);
+        .sound-btn:hover {
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
         }
 
-        .particles {
-            position: fixed;
+        .elevation-1 {
+            box-shadow: 0 1px 2px rgba(0,0,0,0.12), 0 1px 1px rgba(0,0,0,0.24);
+        }
+
+        .elevation-2 {
+            box-shadow: 0 2px 4px rgba(0,0,0,0.16), 0 2px 2px rgba(0,0,0,0.23);
+        }
+
+        .elevation-3 {
+            box-shadow: 0 3px 6px rgba(0,0,0,0.19), 0 3px 3px rgba(0,0,0,0.23);
+        }
+
+        .material-ui-bar {
+            position: absolute;
             top: 0;
             left: 0;
-            width: 100%;
-            height: 100%;
+            width: 100vw;
+            display: flex;
+            justify-content: flex-end;
+            align-items: flex-start;
+            gap: 24px;
+            padding: 18px 32px 0 0;
+            z-index: 10;
             pointer-events: none;
-            z-index: -1;
+        }
+        .material-ui-box {
+            background: var(--primary-container);
+            color: var(--on-primary-container);
+            border-radius: 18px;
+            box-shadow: 0 4px 16px rgba(103,80,164,0.10), 0 1.5px 4px rgba(0,0,0,0.08);
+            padding: 12px 24px;
+            font-size: 1.1rem;
+            font-family: 'Roboto', sans-serif;
+            font-weight: 500;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-width: 120px;
+            min-height: 36px;
+            pointer-events: auto;
+            transition: box-shadow 0.2s;
+        }
+        .material-ui-box .material-icons {
+            font-size: 22px;
+            margin-right: 6px;
+        }
+        .material-ui-box.powerup {
+            background: linear-gradient(90deg, #FFD700 60%, #FFF7C0 100%);
+            color: #21005D;
+        }
+        .material-ui-box.wave {
+            background: linear-gradient(90deg, #4F378B 60%, #EADDFF 100%);
+            color: #fff;
+        }
+        .material-ui-box.score {
+            background: linear-gradient(90deg, #00C853 60%, #B9F6CA 100%);
+            color: #fff;
+        }
+        .material-ui-box.heart {
+            background: linear-gradient(90deg, #FF1744 60%, #FF8A80 100%);
+            color: #fff;
         }
 
-        @media (max-width: 768px) {
-            #titleScreen h3 {
-                font-size: 2em;
+        .rpg-ui-bar {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            display: flex;
+            justify-content: flex-end;
+            align-items: flex-start;
+            gap: 24px;
+            padding: 18px 32px 0 0;
+            z-index: 10;
+            pointer-events: none;
+            transition: opacity 0.3s;
+        }
+        .rpg-ui-box {
+            background: rgba(20, 20, 30, 0.85);
+            color: #fff;
+            border-radius: 18px;
+            box-shadow: 0 4px 24px 0 #000a, 0 0 0 2px #3cf6ff80;
+            backdrop-filter: blur(8px);
+            border: 1.5px solid #3cf6ff80;
+            padding: 14px 28px;
+            font-size: 1.15rem;
+            font-family: 'Roboto', 'Segoe UI', Arial, sans-serif;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            min-width: 120px;
+            min-height: 38px;
+            pointer-events: auto;
+            transition: box-shadow 0.2s, border 0.2s;
+            text-shadow: 0 2px 8px #000a;
+        }
+        .rpg-ui-box .material-icons {
+            font-size: 26px;
+            margin-right: 7px;
+            filter: drop-shadow(0 0 4px #3cf6ff);
+        }
+        .rpg-ui-box.heart {
+            border-color: #ff4f7a80;
+            box-shadow: 0 0 12px #ff4f7a60, 0 0 0 2px #ff4f7a80;
+        }
+        .rpg-ui-box.score {
+            border-color: #ffe06680;
+            box-shadow: 0 0 12px #ffe06660, 0 0 0 2px #ffe06680;
+        }
+        .rpg-ui-box.wave {
+            border-color: #7c4dff80;
+            box-shadow: 0 0 12px #7c4dff60, 0 0 0 2px #7c4dff80;
+        }
+        .rpg-ui-box.powerup {
+            border-color: #3cf6ff80;
+            box-shadow: 0 0 12px #3cf6ff60, 0 0 0 2px #3cf6ff80;
+        }
+
+        .hud-bar {
+            position: absolute;
+            top: 18px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            justify-content: center;
+            z-index: 10;
+            pointer-events: none;
+            transition: opacity 0.3s;
+            max-width: 600px;
+            min-width: 260px;
+            margin: 0 auto;
+        }
+        .hud-single-box {
+            background: rgba(24,26,32,0.65);
+            color: #fff;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px #000a;
+            padding: 10px 4vw;
+            font-size: 1rem;
+            font-family: 'Roboto', 'Segoe UI', Arial, sans-serif;
+            font-weight: 500;
+            min-width: 220px;
+            max-width: 100vw;
+            min-height: 38px;
+            display: flex;
+            align-items: center;
+            gap: 2vw;
+            pointer-events: auto;
+            border: 1.5px solid #23242b;
+            transition: box-shadow 0.2s, border 0.2s;
+        }
+        .hud-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 1.08em;
+        }
+        .hud-item .material-icons {
+            font-size: 1.25em;
+            vertical-align: middle;
+            margin-right: 2px;
+        }
+        .hud-sep {
+            width: 1.5px;
+            height: 22px;
+            background: #333a;
+            border-radius: 2px;
+            margin: 0 10px;
+        }
+
+        .powerup-bar {
+            position: absolute;
+            left: 24px;
+            bottom: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            z-index: 20;
+            pointer-events: none;
+        }
+        .powerup-item {
+            display: flex;
+            align-items: center;
+            background: rgba(24,26,32,0.7);
+            border-radius: 8px;
+            box-shadow: 0 2px 8px #000a;
+            padding: 6px 14px 6px 8px;
+            min-width: 80px;
+            font-size: 1.05em;
+            font-family: 'Roboto', 'Segoe UI', Arial, sans-serif;
+            color: #fff;
+            font-weight: 500;
+            gap: 10px;
+            border: 1.5px solid #23242b;
+        }
+        .powerup-item img {
+            width: 28px;
+            height: 28px;
+            margin-right: 8px;
+            filter: drop-shadow(0 2px 4px #0008);
+        }
+        .powerup-timer {
+            font-size: 1em;
+            color: #FFD700;
+            font-weight: 700;
+            margin-left: 4px;
+        }
+
+        .wave-message-bar {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 15;
+            display: flex;
+            justify-content: center;
+            width: 100vw;
+            max-width: 600px;
+            min-width: 220px;
+            pointer-events: none;
+        }
+        .wave-message {
+            background: rgba(24,26,32,0.85);
+            color: #fff;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px #000a;
+            padding: 10px 4vw;
+            font-size: 1.25rem;
+            font-family: 'Roboto', 'Segoe UI', Arial, sans-serif;
+            font-weight: 700;
+            letter-spacing: 1px;
+            text-align: center;
+            border: 1.5px solid #23242b;
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+            min-width: 220px;
+            max-width: 100vw;
+        }
+        .wave-message.visible {
+            opacity: 1;
+        }
+
+        @media (max-width: 600px) {
+            .game-title {
+                font-size: 2rem;
             }
             
-            #start, #restart {
-                padding: 12px 30px;
-                font-size: 1em;
+            .btn {
+                padding: 12px 20px;
+                font-size: 0.875rem;
+                min-width: 160px;
+                height: 36px;
             }
             
-            .button {
-                width: 60px;
-                height: 60px;
+            .control-btn, .sound-btn {
+                width: 48px;
+                height: 48px;
+                border-radius: 12px;
             }
             
-            .button img {
-                width: 30px;
-                height: 30px;
+            .control-btn .material-icons, .sound-btn {
+                font-size: 20px;
             }
         }
     </style>
 </head>
 <body>
-    <div class="particles" id="particles-js"></div>
     <canvas id="gameCanvas"></canvas>
     
-    <div id="titleScreen">
-        <h3>GALAXIAN</h3>
-        <button id="start">START</button>
-    </div>
-    
-    <div id="gameOver">
-        <h1>GAME OVER</h1>
-        <p id="finalScore">SCORE: 0</p>
-        <button id="restart">PLAY AGAIN</button>
+    <div id="uiContainer">
+        <div id="titleScreen">
+            <h1 class="game-title">Galaxian</h1>
+            <button id="start" class="btn elevation-1">
+                <span class="material-icons">play_arrow</span>
+                Start Game
+            </button>
+        </div>
+        
+        <div id="gameOver">
+            <h1><span class="material-icons">flag</span> GAME OVER</h1>
+            <div id="finalScore">Final Score: <span id="finalScoreValue">0</span></div>
+            <div id="hiScoreBox">HI-Score: <span id="hiScoreValue">0</span></div>
+            <button class="btn" id="restart">Play Again</button>
+            <div class="gameover-msg">Thanks for playing! Try again for a higher score 🚀</div>
+        </div>
+
+        <div id="controls">
+            <button id="upButton" class="control-btn elevation-2">
+                <span class="material-icons">arrow_upward</span>
+            </button>
+            <button id="downButton" class="control-btn elevation-2">
+                <span class="material-icons">arrow_downward</span>
+            </button>
+            <button id="fireButton" class="control-btn elevation-2">
+                <span class="material-icons">bolt</span>
+            </button>
+        </div>
+        
+        <div id="soundControls">
+            <button id="soundButton" class="sound-btn elevation-2">
+                <span class="material-icons">volume_up</span>
+            </button>
+        </div>
     </div>
 
-    <div id="controls">
-        <button id="upButton" class="button"><img src="images/up.png" alt="Up"></button>
-        <button id="downButton" class="button"><img src="images/down.png" alt="Down"></button>
-        <button id="fireButton" class="button"><img src="images/fire.png" alt="Fire"></button>
-    </div>
-    
-    <div id="soundControls">
-        <button id="soundButton" class="soundButton">🔊</button>
-    </div>
-    
-    <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
     <script>
-        particlesJS("particles-js", {
-            particles: {
-                number: { value: 80, density: { enable: true, value_area: 800 } },
-                color: { value: "#ffffff" },
-                shape: { type: "circle" },
-                opacity: { value: 0.5, random: true },
-                size: { value: 3, random: true },
-                line_linked: { enable: true, distance: 150, color: "#88e611", opacity: 0.4, width: 1 },
-                move: { enable: true, speed: 2, direction: "none", random: true, straight: false, out_mode: "out" }
-            },
-            interactivity: {
-                detect_on: "canvas",
-                events: {
-                    onhover: { enable: true, mode: "repulse" },
-                    onclick: { enable: true, mode: "push" }
-                }
+        // Prevent image drag and context menu
+        document.addEventListener('dragstart', (e) => e.preventDefault());
+        document.addEventListener('contextmenu', (e) => e.preventDefault());
+        
+        // Dynamic theme color based on system preferences
+        function updateTheme() {
+            const darkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            document.documentElement.style.setProperty('--primary', darkMode ? '#D0BCFF' : '#6750A4');
+            document.documentElement.style.setProperty('--surface', darkMode ? '#1C1B1F' : '#FEF7FF');
+        }
+        
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', updateTheme);
+        updateTheme();
+    </script>
+    <script>
+        // 4:3 oranı için canvas boyutunu ayarla
+        function resizeGameCanvas() {
+            const canvas = document.getElementById('gameCanvas');
+            let w = window.innerWidth;
+            let h = window.innerHeight;
+            let targetW = w;
+            let targetH = h;
+            if (w / h > 4/3) {
+                // Ekran çok geniş, yüksekliği baz al
+                targetH = h;
+                targetW = h * 4 / 3;
+            } else {
+                // Ekran çok dar, genişliği baz al
+                targetW = w;
+                targetH = w * 3 / 4;
             }
-        });
+            canvas.width = Math.round(targetW);
+            canvas.height = Math.round(targetH);
+            canvas.style.width = targetW + 'px';
+            canvas.style.height = targetH + 'px';
+            canvas.style.display = 'block';
+            canvas.style.margin = '0 auto';
+            canvas.style.position = 'absolute';
+            canvas.style.left = '50%';
+            canvas.style.top = '50%';
+            canvas.style.transform = 'translate(-50%, -50%)';
+        }
+        window.addEventListener('resize', resizeGameCanvas);
+        window.addEventListener('DOMContentLoaded', resizeGameCanvas);
     </script>
     <script src="game.js"></script>
+    <div class="rpg-ui-bar" id="rpg-ui-bar" style="opacity:0; pointer-events:none;">
+        <div class="rpg-ui-box score"><span class="material-icons">star</span><span id="mui-score">0</span></div>
+        <div class="rpg-ui-box wave"><span class="material-icons">waves</span><span id="mui-wave">1</span></div>
+        <div class="rpg-ui-box heart" id="mui-heart"></div>
+        <div class="rpg-ui-box powerup" id="mui-powerup"></div>
+    </div>
+    <div class="hud-bar" id="hud-bar" style="opacity:0; pointer-events:none;">
+        <div class="hud-single-box">
+            <span class="hud-item"><span class="material-icons">star</span><span id="hud-score">0</span>/<span id="hud-hi-score">0</span></span>
+            <span class="hud-sep"></span>
+            <span class="hud-item"><span class="material-icons">waves</span><span id="hud-wave">1</span>|<span id="hud-enemies">0</span></span>
+            <span class="hud-sep"></span>
+            <span class="hud-item"><span class="hud-heart" id="hud-heart"></span></span>
+        </div>
+    </div>
+    <div class="powerup-bar" id="powerup-bar"></div>
+    <div class="wave-message-bar"><div class="wave-message" id="wave-message"><span class="material-icons" style="vertical-align:middle;margin-right:8px;">flag</span><span id="wave-message-text"></span></div></div>
+    <script>
+        // Material UI bar güncelleme fonksiyonları (canvas ile birlikte çalışacak)
+        function updateMaterialUI(score, wave, hearts, powerup) {
+            document.getElementById('mui-score').textContent = score;
+            document.getElementById('mui-wave').textContent = wave;
+            document.getElementById('mui-heart').innerHTML = hearts;
+            document.getElementById('mui-powerup').innerHTML = powerup;
+        }
+        function showRPGUIBar(show) {
+            const bar = document.getElementById('rpg-ui-bar');
+            if (show) {
+                bar.style.opacity = 1;
+                bar.style.pointerEvents = 'auto';
+            } else {
+                bar.style.opacity = 0;
+                bar.style.pointerEvents = 'none';
+            }
+        }
+
+        function updateHUD(score, hiScore, wave, enemies, hearts) {
+            document.getElementById('hud-score').textContent = score;
+            document.getElementById('hud-hi-score').textContent = hiScore;
+            document.getElementById('hud-wave').textContent = wave;
+            document.getElementById('hud-enemies').textContent = enemies;
+            document.getElementById('hud-heart').innerHTML = hearts;
+        }
+        function showHUDBar(show) {
+            const bar = document.getElementById('hud-bar');
+            if (show) {
+                bar.style.opacity = 1;
+                bar.style.pointerEvents = 'auto';
+            } else {
+                bar.style.opacity = 0;
+                bar.style.pointerEvents = 'none';
+            }
+        }
+    </script>
 </body>
 </html>
