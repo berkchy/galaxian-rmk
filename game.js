@@ -1896,7 +1896,47 @@ function connectWebSocket() {
             }
         }
         if (msg.type === 'error') {
-            showMuiError(msg.message);
+            // Check if this is a game start error to show a more specific message
+            if (msg.message && msg.message.includes('en az 2 oyuncu')) {
+                showMuiError('Oyun Başlatılamadı', msg.message);
+                
+                // Re-enable the start button with a visual cue
+                const startBtn = document.getElementById('startGameBtn');
+                const inGameStartBtn = document.getElementById('inGameStartBtn');
+                
+                if (startBtn) {
+                    startBtn.disabled = false;
+                    startBtn.style.opacity = '1';
+                    startBtn.style.pointerEvents = 'auto';
+                    startBtn.textContent = 'Oyunu Başlat (En az 2 oyuncu gerekli)';
+                    startBtn.style.backgroundColor = '#f44336'; // Red color to indicate error
+                    
+                    // Revert the button after 3 seconds
+                    setTimeout(() => {
+                        if (startBtn) {
+                            startBtn.textContent = 'Oyunu Başlat';
+                            startBtn.style.backgroundColor = '';
+                        }
+                    }, 3000);
+                }
+                
+                if (inGameStartBtn) {
+                    inGameStartBtn.disabled = false;
+                    inGameStartBtn.style.opacity = '1';
+                    inGameStartBtn.style.pointerEvents = 'auto';
+                    inGameStartBtn.textContent = 'Oyunu Başlat (En az 2 oyuncu gerekli)';
+                    inGameStartBtn.style.backgroundColor = '#f44336';
+                    
+                    setTimeout(() => {
+                        if (inGameStartBtn) {
+                            inGameStartBtn.textContent = 'Oyunu Başlat';
+                            inGameStartBtn.style.backgroundColor = '';
+                        }
+                    }, 3000);
+                }
+            } else {
+                showMuiError(msg.message);
+            }
         }
     };
 }

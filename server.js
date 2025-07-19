@@ -74,8 +74,17 @@ wss.on('connection', (ws) => {
         }
         else if (msg.type === 'start_game') {
             if (currentLobby && lobbies[currentLobby] && lobbies[currentLobby].owner === playerId) {
+                // En az 2 oyuncu olup olmadığını kontrol et
+                if (lobbies[currentLobby].players.length < 2) {
+                    ws.send(JSON.stringify({ 
+                        type: 'error', 
+                        message: 'Oyunu başlatmak için en az 2 oyuncu gereklidir.' 
+                    }));
+                    log(`Oyun başlatma başarısız: Yeterli oyuncu yok. Mevcut oyuncu sayısı: ${lobbies[currentLobby].players.length}`);
+                    return;
+                }
                 broadcastToLobby(currentLobby, { type: 'game_started' });
-                // Oyun başlatma logu atlanıyor (sadece lobi işlemleri loglanacak)
+                log(`Oyun başlatıldı: ${currentLobby} | Oyuncu sayısı: ${lobbies[currentLobby].players.length}`);
             }
         }
         else if (msg.type === 'player_update') {
