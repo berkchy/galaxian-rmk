@@ -1838,7 +1838,10 @@ function showMuiError(msg) {
 let pendingLobbyAction = null;
 
 function connectWebSocket() {
-    ws = new WebSocket('ws://localhost:8080');
+    const protocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
+    const host = window.location.hostname;
+    const port = window.location.port ? ':' + window.location.port : '';
+    ws = new WebSocket(`${protocol}${host}${port ? ':' + port : ''}`);
     ws.onopen = () => {
         // Bağlantı açıldıysa bekleyen lobi işlemini gönder
         if (pendingLobbyAction) {
@@ -2101,7 +2104,10 @@ function showLobbyListModal() {
     modal.classList.add('active');
     document.getElementById('lobbyListContainer').innerHTML = 'Yükleniyor...';
     if (!lobbyListWs || lobbyListWs.readyState !== 1) {
-        lobbyListWs = new WebSocket('ws://localhost:8080');
+        const protocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
+        const host = window.location.hostname;
+        const port = window.location.port ? ':' + window.location.port : '';
+        lobbyListWs = new WebSocket(`${protocol}${host}${port ? ':' + port : ''}`);
         lobbyListWs.onopen = () => {
             lobbyListWs.send(JSON.stringify({ type: 'list_lobbies' }));
         };
