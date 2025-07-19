@@ -1,35 +1,3 @@
-// --- SUPABASE MULTIPLAYER LOBBY ---
-// Supabase Functions Base URL (örnek: 'https://<proje_ref_kodu>.functions.supabase.co')
-const SUPABASE_FUNCTIONS_BASE = 'https://cjzmtpzjwpxskesvvyoj.functions.supabase.co'; // <-- Burayı kendi projenle değiştir!
-
-const FN_CREATE_LOBBY = SUPABASE_FUNCTIONS_BASE + '/create_lobby';
-const FN_JOIN_LOBBY = SUPABASE_FUNCTIONS_BASE + '/join_lobby';
-const FN_GET_PLAYERS = SUPABASE_FUNCTIONS_BASE + '/get_players';
-const FN_START_GAME = SUPABASE_FUNCTIONS_BASE + '/start_game';
-const FN_UPDATE_POSITION = SUPABASE_FUNCTIONS_BASE + '/update_position';
-
-let lobbyId = null;
-let playerId = null;
-let isOwner = false;
-let lobbyStatus = 'waiting';
-let playerName = '';
-let players = [];
-let lobbyPollInterval = null;
-let ownerId = null;
-let gameStarted = false;
-let lobbiesSubscription = null;
-let playersSubscription = null;
-
-async function postJson(url, body) {
-    const res = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body)
-    });
-    return await res.json();
-}
-// --- SUPABASE MULTIPLAYER LOBBY ---
-
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 // updateGameObjectsOnResize fonksiyonu ve event listener'ları zaten tanımlıysa tekrar tanımlama!
@@ -675,20 +643,26 @@ let enemySpawnInterval;
 let heartSpawnInterval;
 let animationId;
 
-document.getElementById('restart').addEventListener('click', () => {
-    // Ana menü animasyonunu tekrar başlat
-    stopMenuAnimation();
-    menuEnemies = [];
-    menuTime = 0;
-    startMenuAnimation();
-    
-    // Oyunu sıfırla
-    window.location.reload();
-});
+const restartButton = document.getElementById('restart');
+if (restartButton) {
+    restartButton.addEventListener('click', () => {
+        // Ana menü animasyonunu tekrar başlat
+        stopMenuAnimation();
+        menuEnemies = [];
+        menuTime = 0;
+        startMenuAnimation();
+        
+        // Oyunu sıfırla
+        window.location.reload();
+    });
+}
 
-document.getElementById('start').addEventListener('click', () => {
-    startGame();
-});
+const startButton = document.getElementById('start');
+if (startButton) {
+    startButton.addEventListener('click', () => {
+        startGame();
+    });
+}
 
 let musicID;
 
@@ -1098,7 +1072,8 @@ window.addEventListener('keydown', (e) => {
     if (e.key === 's' || e.key === 'S') keys['KeyS'] = true;
     if(e.code === "Space") {
         // Ana menüde mi yoksa oyunda mı kontrol et
-        if (document.getElementById('titleScreen').style.display !== 'none') {
+        const titleScreen = document.getElementById('titleScreen');
+        if (titleScreen && titleScreen.style.display !== 'none') {
             menuShoot(); // Ana menüde ateş et
         } else {
             shoot(); // Oyunda ateş et
@@ -1166,23 +1141,27 @@ function gameMusic() {
 
 // Ses ayarları
 var soundButton = document.getElementById('soundButton');
-soundButton.addEventListener('click', function() {
-    if(music_audio.volume <= 0.0) {
-        music_audio.volume = 1.0;
-        soundButton.textContent = '🔊';
-        set("sound_volume", music_audio.volume);
-    } else {
-        music_audio.volume = 0.0;
-        soundButton.textContent = '🔈';
-        set("sound_volume", music_audio.volume);
-    }
-});
+if (soundButton) {
+    soundButton.addEventListener('click', function() {
+        if(music_audio.volume <= 0.0) {
+            music_audio.volume = 1.0;
+            soundButton.textContent = '🔊';
+            set("sound_volume", music_audio.volume);
+        } else {
+            music_audio.volume = 0.0;
+            soundButton.textContent = '🔈';
+            set("sound_volume", music_audio.volume);
+        }
+    });
+}
 
 function iconUpdate() {
-    if(music_audio.volume <= 0.0) {
-        soundButton.textContent = '🔈';
-    } else {
-        soundButton.textContent = '🔊';
+    if (soundButton) {
+        if(music_audio.volume <= 0.0) {
+            soundButton.textContent = '🔈';
+        } else {
+            soundButton.textContent = '🔊';
+        }
     }
 }
 
@@ -1634,9 +1613,15 @@ function resetGame() {
     gameOverMusicPlayed = false;
 }
 function startGame() {
-    document.getElementById('titleScreen').style.display = 'none';
+    const titleScreen = document.getElementById('titleScreen');
+    if (titleScreen) {
+        titleScreen.style.display = 'none';
+    }
     if(!desktopUser()) {
-        document.getElementById('controls').style.display = 'flex';
+        const controls = document.getElementById('controls');
+        if (controls) {
+            controls.style.display = 'flex';
+        }
     }
     stopMenuAnimation();
     resetGame();
@@ -1702,17 +1687,31 @@ function animate() {
             musicTimer = 0;
         }
     }
+    updateIconHUD();
 }
 window.animate = animate;
 
 function updateGameHUD() {
-    updateHUD(
-        score,
-        high_score,
-        wave,
-        enemiesRemaining, // Kalan toplam düşman
-        getHeartsHTML()
-    );
+    const lobbyScreen = document.getElementById('lobbyScreen');
+    const scoreboardPanel = document.getElementById('scoreboardPanel');
+    const currentWaveNumber = document.getElementById('currentWaveNumber');
+    
+    // Update the current wave display
+    if (currentWaveNumber) {
+        currentWaveNumber.textContent = typeof wave === 'number' ? wave : 1;
+    }
+    
+    // Hide scoreboard when in lobby
+    if (lobbyScreen && lobbyScreen.style.display !== 'none') {
+        if (scoreboardPanel) scoreboardPanel.style.display = 'none';
+        return;
+    }
+    
+    // Update the scoreboard with player stats
+    if (scoreboardPanel) {
+        scoreboardPanel.style.display = 'block';
+        updateScoreboardPanel();
+    }
 }
 window.updateGameHUD = updateGameHUD;
 
@@ -1820,373 +1819,571 @@ function showWaveMessage(text, duration = 1800) {
 }
 window.showWaveMessage = showWaveMessage;
 
-// --- LOBBY UI & SUPABASE ENTEGRASYONU ---
-document.addEventListener('DOMContentLoaded', () => {
-    // UI elementleri
-    const lobbyMenu = document.getElementById('lobbyMenu');
-    const lobbyCreateJoin = document.getElementById('lobbyCreateJoin');
-    const lobbyWait = document.getElementById('lobbyWait');
-    const createLobbyBtn = document.getElementById('createLobbyBtn');
-    const joinLobbyBtn = document.getElementById('joinLobbyBtn');
-    const startGameBtn = document.getElementById('startGameBtn');
-    const leaveLobbyBtn = document.getElementById('leaveLobbyBtn');
-    const playerNameInput = document.getElementById('playerNameInput');
-    const joinLobbyIdInput = document.getElementById('joinLobbyIdInput');
-    const lobbyIdDisplay = document.getElementById('lobbyIdDisplay');
-    const playerList = document.getElementById('playerList');
-    const waitInfo = document.getElementById('waitInfo');
+// === MULTIPLAYER ===
+let ws;
+let myPlayerId = null;
+let myPlayerName = null;
+let lobbyId = null;
+let isLobbyOwner = false;
+let allPlayers = {}; // {id: {x, y, ...}}
 
-    // Lobi oluştur
-    createLobbyBtn.onclick = async () => {
-        playerName = playerNameInput.value.trim();
-        const ownerUuid = crypto.randomUUID();
-        const res = await postJson(FN_CREATE_LOBBY, { owner_id: ownerUuid, name: playerName });
-        if (res.lobby && res.player) {
-            lobbyId = res.lobby.id;
-            playerId = res.player.id;
-            isOwner = true;
-            lobbyStatus = res.lobby.status;
-            ownerId = ownerUuid; // Lobi sahibi id'sini sakla
-            showLobbyWait();
-            pollLobbyPlayers();
-            subscribePlayersRealtime();
-        } else {
-            alert(res.error || 'Lobi oluşturulamadı!');
+// === Material UI Hata Popup ===
+function showMuiError(msg) {
+    const popup = document.getElementById('muiErrorPopup');
+    popup.textContent = msg;
+    popup.style.display = 'block';
+    setTimeout(() => { popup.style.display = 'none'; }, 2600);
+}
+
+let pendingLobbyAction = null;
+
+function connectWebSocket() {
+    ws = new WebSocket('ws://localhost:8080');
+    ws.onopen = () => {
+        // Bağlantı açıldıysa bekleyen lobi işlemini gönder
+        if (pendingLobbyAction) {
+            ws.send(JSON.stringify(pendingLobbyAction));
+            pendingLobbyAction = null;
         }
     };
-
-    // Lobiye katıl
-    joinLobbyBtn.onclick = async () => {
-        playerName = playerNameInput.value.trim();
-        const joinId = joinLobbyIdInput.value.trim();
-        if (!joinId) return alert('Lobi kodu gir!');
-        const res = await postJson(FN_JOIN_LOBBY, { lobby_id: joinId, name: playerName });
-        if (res.player) {
-            lobbyId = joinId;
-            playerId = res.player.id;
-            isOwner = false;
-            lobbyStatus = 'waiting';
-            showLobbyWait();
-            // Lobi status'unu kontrol et
-            const lobbyRes = await postJson(FN_GET_PLAYERS, { lobby_id: lobbyId });
-            if (lobbyRes.status === 'started') {
-                lobbyStatus = 'started';
-                if (lobbyRes.players) players = lobbyRes.players;
-                startMultiplayerGame();
-            } else {
-                pollLobbyPlayers();
-            }
-            subscribePlayersRealtime();
-        } else {
-            alert(res.error || 'Lobiye katılım başarısız!');
+    ws.onmessage = (event) => {
+        const msg = JSON.parse(event.data);
+        if (msg.type === 'lobby_created') {
+            lobbyId = msg.lobbyId;
+            isLobbyOwner = msg.owner;
+            document.getElementById('lobbyInfo').textContent = `Lobi Kodu: ${lobbyId}`;
+            document.getElementById('startGameBtn').style.display = 'block';
+            showLobbyWaitingScreen();
         }
-    };
-
-    // Oyunu başlat (sadece owner)
-    startGameBtn.onclick = async () => {
-        if (!isOwner) return;
-        const res = await postJson(FN_START_GAME, { lobby_id: lobbyId, owner_id: ownerId });
-        if (res.lobby && res.lobby.status === 'started') {
-            lobbyStatus = 'started';
-            startMultiplayerGame();
-        } else {
-            alert(res.error || 'Oyun başlatılamadı!');
+        if (msg.type === 'lobby_joined') {
+            lobbyId = msg.lobbyId;
+            isLobbyOwner = msg.owner;
+            document.getElementById('lobbyInfo').textContent = `Lobiye katıldınız. Kod: ${lobbyId}`;
+            showLobbyWaitingScreen();
         }
-    };
-
-    // Lobiden çık
-    leaveLobbyBtn.onclick = async () => {
-        // Oyuncu kaydını ve gerekirse lobiyi sil
-        if (playerId) {
-            await postJson(SUPABASE_FUNCTIONS_BASE + '/leave_lobby', { player_id: playerId });
+        if (msg.type === 'player_list') {
+            updatePlayerList(msg.players);
         }
-        resetLobbyUI();
-        if (playersSubscription) playersSubscription.unsubscribe();
-    };
-
-    function showLobbyWait() {
-        lobbyCreateJoin.style.display = 'none';
-        lobbyWait.style.display = 'flex';
-        lobbyIdDisplay.value = lobbyId;
-        startGameBtn.style.display = isOwner ? 'block' : 'none';
-    }
-    function resetLobbyUI() {
-        lobbyCreateJoin.style.display = 'flex';
-        lobbyWait.style.display = 'none';
-        lobbyId = null;
-        playerId = null;
-        isOwner = false;
-        lobbyStatus = 'waiting';
-        playerName = '';
-        players = [];
-        clearInterval(lobbyPollInterval);
-        updatePlayerList([]);
-    }
-    function updatePlayerList(list) {
-        playerList.innerHTML = '';
-        list.forEach(p => {
-            const li = document.createElement('li');
-            li.textContent = p.name + (p.is_owner ? ' (Sahip)' : '');
-            playerList.appendChild(li);
-        });
-    }
-    async function pollLobbyPlayers() {
-        clearInterval(lobbyPollInterval);
-        const poll = async () => {
-            if (!lobbyId) return;
-            const res = await postJson(FN_GET_PLAYERS, { lobby_id: lobbyId });
-            if (res.players) {
-                players = res.players;
-                updatePlayerList(players);
-            }
-            // DEBUG: Konsola status ve isOwner yaz
-            console.log('pollLobbyPlayers status:', res.status, 'isOwner:', isOwner, 'gameStarted:', gameStarted);
-            // Lobi status kontrolü (oyun başladı mı?)
-            if (!gameStarted && res.status === 'started') {
-                lobbyStatus = 'started';
-                gameStarted = true;
-                // En güncel oyuncu listesini çek
-                const latest = await postJson(FN_GET_PLAYERS, { lobby_id: lobbyId });
-                if (latest.players) players = latest.players;
-                startMultiplayerGame();
-            }
-        };
-        lobbyPollInterval = setInterval(poll, 1500);
-        poll();
-    }
-    async function fetchLobbyStatus() {
-        // Lobi status'unu almak için lobbies tablosuna bakmak gerekir, burada basitçe oyuncu sayısı ve owner'ın status'unu kontrol ediyoruz
-        // Oyun başladıysa başlat
-        if (!lobbyId) return;
-        // get_players fonksiyonu ile status gelmiyorsa, ek bir fonksiyon gerekebilir. Şimdilik owner'ın status'unu kontrol edelim.
-        // Eğer bir oyuncunun is_owner ve status'u started ise başlat
-        if (players.length > 0 && lobbyStatus === 'waiting') {
-            // Oyun owner'ı status'u started ise başlat
-            // (Burada daha iyi bir kontrol için get_lobby_status fonksiyonu eklenebilir)
+        if (msg.type === 'game_started') {
+            document.getElementById('lobbyScreen').style.display = 'none';
+            hideLobbyPanelOnGameStart();
+            startGame();
         }
-    }
-    // Multiplayer oyun başlat
-    function startMultiplayerGame() {
-        if (gameStarted) return; // Oyun zaten başladıysa tekrar başlatma
-        gameStarted = true;
-        // Lobi ve ana menü ekranlarını gizle
-        const lobbyMenu = document.getElementById('lobbyMenu');
-        if (lobbyMenu) lobbyMenu.style.display = 'none';
-        const titleScreen = document.getElementById('titleScreen');
-        if (titleScreen) titleScreen.style.display = 'none';
-        clearInterval(lobbyPollInterval);
-
-        if (typeof stopMenuAnimation === 'function') stopMenuAnimation();
-
-        window.multiplayerPlayers = {};
-        window.multiplayerPlayers[playerId] = {
-            id: playerId,
-            name: playerName || 'Bilinmeyen',
-            x: 100,
-            y: canvas.height / 2 - 25,
-            isSelf: true
-        };
-        players.forEach(p => {
-            if (p.id !== playerId) {
-                window.multiplayerPlayers[p.id] = {
-                    id: p.id,
-                    name: p.name,
-                    x: 100,
-                    y: canvas.height / 2 - 25,
-                    isSelf: false
-                };
-            }
-        });
-        startMultiplayerLoop();
-
-        if (typeof resetGame === 'function') resetGame();
-        if (typeof startGame === 'function') startGame();
-    }
-
-    function startMultiplayerLoop() {
-        // Kendi pozisyonunu Supabase'e yaz ve diğer oyuncuları çek
-        setInterval(async () => {
-            // Kendi pozisyonunu güncelle
-            await postJson(FN_UPDATE_POSITION, { player_id: playerId, x: player.x, y: player.y });
-            // Diğer oyuncuları çek
-            const res = await postJson(FN_GET_PLAYERS, { lobby_id: lobbyId });
-            if (res.players) {
-                res.players.forEach(p => {
-                    if (p.id !== playerId) {
-                        if (!window.multiplayerPlayers[p.id]) {
-                            window.multiplayerPlayers[p.id] = { id: p.id, name: p.name, x: p.x, y: p.y, isSelf: false };
-                        } else {
-                            window.multiplayerPlayers[p.id].x = p.x;
-                            window.multiplayerPlayers[p.id].y = p.y;
-                        }
+        if (msg.type === 'player_states') {
+            allPlayers = {};
+            // Update all players with their current states
+            msg.players.forEach(p => {
+                allPlayers[p.id] = p.state || {};
+                allPlayers[p.id].name = p.name;
+                
+                // Update the lobbyPlayers array with the latest state for the scoreboard
+                if (window.lobbyPlayers) {
+                    const playerIndex = window.lobbyPlayers.findIndex(pl => pl.id === p.id);
+                    if (playerIndex !== -1) {
+                        window.lobbyPlayers[playerIndex] = {
+                            ...window.lobbyPlayers[playerIndex],
+                            state: p.state || { hearts: 0, score: 0, wave: 1 }
+                        };
+                        // Ensure the player's name is up to date
+                        window.lobbyPlayers[playerIndex].name = p.name;
                     }
-                });
+                }
+            });
+            
+            // Force update the scoreboard with the latest player data
+            if (typeof updateScoreboardPanel === 'function') {
+                updateScoreboardPanel();
             }
-        }, 200);
-    }
-
-    // Oyuncuları çizmek için ana oyun döngüsüne ekle
-    const originalDrawPlayer = window.drawPlayer || function(){};
-    window.drawPlayer = function() {
-        // Multiplayer oyuncular
-        if (window.multiplayerPlayers) {
-            Object.values(window.multiplayerPlayers).forEach(p => {
-                ctx.save();
-                if (!p.isSelf) ctx.globalAlpha = 0.4;
-                ctx.drawImage(playerImage, p.x, p.y, 50, 50);
-                ctx.globalAlpha = 1.0;
-                // İsim etiketi
-                ctx.font = '14px Roboto';
-                ctx.fillStyle = p.isSelf ? '#fff' : '#aaa';
-                ctx.textAlign = 'center';
-                ctx.fillText(p.name, p.x + 25, p.y - 8);
-                ctx.restore();
-            });
-        } else {
-            // Tek oyunculu mod
-            originalDrawPlayer();
+        }
+        if (msg.type === 'error') {
+            showMuiError(msg.message);
         }
     };
+}
 
-    // Lobi kodu kopyala ve paylaş butonları
-    const copyLobbyIdBtn = document.getElementById('copyLobbyIdBtn');
-    const shareLobbyIdBtn = document.getElementById('shareLobbyIdBtn');
-    copyLobbyIdBtn.onclick = () => {
-        if (lobbyIdDisplay.value) {
-            navigator.clipboard.writeText(lobbyIdDisplay.value);
-            copyLobbyIdBtn.innerHTML = '<span class="material-icons">check</span>';
-            setTimeout(() => { copyLobbyIdBtn.innerHTML = '<span class="material-icons">content_copy</span>'; }, 1200);
+// Lobi oluşturma ve katılma öncesi ws kontrolü
+window.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('createLobbyBtn').onclick = () => {
+        const name = document.getElementById('playerNameInput').value.trim();
+        if (!name) {
+            showMuiError('Lütfen bir isim girin.');
+            return;
         }
-    };
-    shareLobbyIdBtn.onclick = () => {
-        if (navigator.share && lobbyIdDisplay.value) {
-            navigator.share({
-                title: 'Galaxian Lobi Kodu',
-                text: 'Galaxian oyun lobisine katılmak için bu kodu kullan: ' + lobbyIdDisplay.value,
-                url: window.location.href
-            });
-        } else {
-            copyLobbyIdBtn.click();
+        myPlayerName = name;
+        const action = { type: 'create_lobby', name: myPlayerName };
+        if (!ws || ws.readyState === 3) {
+            connectWebSocket();
+            pendingLobbyAction = action;
+        } else if (ws.readyState === 0) {
+            pendingLobbyAction = action;
+        } else if (ws.readyState === 1) {
+            ws.send(JSON.stringify(action));
         }
+        myPlayerId = null;
     };
-
-    // ODA LİSTESİ POPUP
-    const showRoomsBtn = document.getElementById('showRoomsBtn');
-    const roomsPopup = document.getElementById('roomsPopup');
-    const closeRoomsPopup = document.getElementById('closeRoomsPopup');
-    const roomsList = document.getElementById('roomsList');
-
-    showRoomsBtn.onclick = async () => {
-        roomsPopup.style.display = 'flex';
-        subscribeLobbiesRealtime();
-        roomsList.innerHTML = '<div style="text-align:center; color:#888; margin:24px 0;">Yükleniyor...</div>';
-        // Supabase'den aktif lobileri çek
-        const res = await fetch(`${SUPABASE_FUNCTIONS_BASE}/get_rooms`, { method: 'POST', headers: { 'Content-Type': 'application/json' } });
-        const data = await res.json();
-        if (data.rooms && data.rooms.length > 0) {
-            roomsList.innerHTML = '';
-            data.rooms.forEach(room => {
-                const div = document.createElement('div');
-                div.style = 'display:flex; align-items:center; gap:16px; background:#f5f5fa; border-radius:10px; margin-bottom:12px; padding:12px 16px;';
-                div.innerHTML = `
-                    <span class="material-icons" style="font-size:2rem; color:#6750A4;">person</span>
-                    <span style="font-size:1.1rem; font-weight:600; color:#333; margin-right:8px;">${room.owner_name || 'Bilinmeyen'}</span>
-                    <span style="display:flex; align-items:center; gap:4px; color:#333;"><span class="material-icons" style="font-size:1.2rem;">group</span> ${room.player_count}</span>
-                    <input value="${room.id}" readonly style="width:120px; background:#fff; border:1px solid #ccc; border-radius:6px; padding:2px 8px; font-size:1rem; text-align:center; letter-spacing:1px;" />
-                    <button class="btn elevation-1" style="min-width:unset; width:40px; padding:0; font-size:1.2rem; background:#d0bcff; color:#381e72;" title="Katıl"><span class="material-icons">login</span></button>
-                `;
-                // Katıl butonu
-                div.querySelector('button').onclick = () => {
-                    roomsPopup.style.display = 'none';
-                    joinLobbyIdInput.value = room.id;
-                    joinLobbyBtn.click();
-                };
-                roomsList.appendChild(div);
-            });
-        } else {
-            roomsList.innerHTML = '<div style="text-align:center; color:#888; margin:24px 0;">Aktif oda yok.</div>';
+    document.getElementById('joinLobbyBtn').onclick = () => {
+        const name = document.getElementById('playerNameInput').value.trim();
+        if (!name) {
+            showMuiError('Lütfen bir isim girin.');
+            return;
         }
+        myPlayerName = name;
+        const code = document.getElementById('lobbyCodeInput').value;
+        const action = { type: 'join_lobby', lobbyId: code, name: myPlayerName };
+        if (!ws || ws.readyState === 3) {
+            connectWebSocket();
+            pendingLobbyAction = action;
+        } else if (ws.readyState === 0) {
+            pendingLobbyAction = action;
+        } else if (ws.readyState === 1) {
+            ws.send(JSON.stringify(action));
+        }
+        myPlayerId = null;
     };
-    closeRoomsPopup.onclick = () => { roomsPopup.style.display = 'none'; };
 });
-// --- LOBBY UI & SUPABASE ENTEGRASYONU ---
 
-// Oyun döngüsünde kendi pozisyonunu multiplayerPlayers[playerId]'ye aktar
-// animate fonksiyonunun başına ekle
-const originalAnimate = typeof animate === 'function' ? animate : null;
-window.animate = function() {
-    if (window.multiplayerPlayers && window.multiplayerPlayers[playerId]) {
-        window.multiplayerPlayers[playerId].x = player.x;
-        window.multiplayerPlayers[playerId].y = player.y;
-    }
-    if (originalAnimate) originalAnimate();
+// === LOBI PANELI ===
+function showInGameLobbyPanel(show) {
+    document.getElementById('inGameLobbyPanel').style.display = show ? 'block' : 'none';
 }
-
-// --- SUPABASE REALTIME ---
-const SUPABASE_URL = 'https://cjzmtpzjwpxskesvvyoj.supabase.co'; // kendi projenle değiştir
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNqem10cHpqd3B4c2tlc3Z2eW9qIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI4NTc5NjYsImV4cCI6MjA2ODQzMzk2Nn0.WARXx5ULZTuEXG8uepHyMLyNpHvdKiM0J-PuzCm-_Ik';
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-// Oda popup açıkken lobbies tablosunu dinle
-function subscribeLobbiesRealtime() {
-    if (lobbiesSubscription) lobbiesSubscription.unsubscribe();
-    lobbiesSubscription = supabase.channel('lobbies-list')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'lobbies' }, payload => {
-            if (roomsPopup.style.display === 'flex') showRoomsBtn.onclick(); // popup açıksa anında güncelle
-        })
-        .subscribe();
-}
-
-// Odaya girince players tablosunu dinle
-function subscribePlayersRealtime() {
-    if (playersSubscription) playersSubscription.unsubscribe();
+function updateInGameLobbyPanel() {
     if (!lobbyId) return;
-    playersSubscription = supabase.channel('players-' + lobbyId)
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'players', filter: `lobby_id=eq.${lobbyId}` }, async payload => {
-            // DEBUG: Event geldiğinde status'u tekrar kontrol et
-            const res = await postJson(FN_GET_PLAYERS, { lobby_id: lobbyId });
-            console.log('subscribePlayersRealtime event, status:', res.status, 'isOwner:', isOwner, 'gameStarted:', gameStarted);
-            if (!gameStarted && res.status === 'started') {
-                lobbyStatus = 'started';
-                gameStarted = true;
-                if (res.players) players = res.players;
-                startMultiplayerGame();
-            }
-            await pollLobbyPlayers();
-        })
-        .subscribe();
+    document.getElementById('inGameLobbyCode').textContent = 'Lobi Kodu: ' + lobbyId;
+    let html = '';
+    if (window.lobbyPlayers && window.lobbyPlayers.length > 0) {
+        window.lobbyPlayers.forEach(p => {
+            html += `${p.name || 'Bilinmeyen'}${p.id === myPlayerId ? ' (Siz)' : ''}<br>`;
+        });
+    }
+    document.getElementById('inGamePlayerList').innerHTML = html;
+    // Sadece lobi sahibi ve oyun başlamadıysa göster
+    document.getElementById('inGameStartBtn').style.display = (isLobbyOwner && !window.gameStarted) ? 'block' : 'none';
 }
 
-// Oda popup açıldığında lobbies tablosunu dinle
-showRoomsBtn.onclick = async () => {
-    roomsPopup.style.display = 'flex';
-    subscribeLobbiesRealtime();
-    roomsList.innerHTML = '<div style="text-align:center; color:#888; margin:24px 0;">Yükleniyor...</div>';
-    // Supabase'den aktif lobileri çek
-    const res = await fetch(`${SUPABASE_FUNCTIONS_BASE}/get_rooms`, { method: 'POST', headers: { 'Content-Type': 'application/json' } });
-    const data = await res.json();
-    if (data.rooms && data.rooms.length > 0) {
-        roomsList.innerHTML = '';
-        data.rooms.forEach(room => {
-            const div = document.createElement('div');
-            div.style = 'display:flex; align-items:center; gap:16px; background:#f5f5fa; border-radius:10px; margin-bottom:12px; padding:12px 16px;';
-            div.innerHTML = `
-                <span class="material-icons" style="font-size:2rem; color:#6750A4;">person</span>
-                <span style="font-size:1.1rem; font-weight:600; color:#333; margin-right:8px;">${room.owner_name || 'Bilinmeyen'}</span>
-                <span style="display:flex; align-items:center; gap:4px; color:#333;"><span class="material-icons" style="font-size:1.2rem;">group</span> ${room.player_count}</span>
-                <input value="${room.id}" readonly style="width:120px; background:#fff; border:1px solid #ccc; border-radius:6px; padding:2px 8px; font-size:1rem; text-align:center; letter-spacing:1px;" />
-                <button class="btn elevation-1" style="min-width:unset; width:40px; padding:0; font-size:1.2rem; background:#d0bcff; color:#381e72;" title="Katıl"><span class="material-icons">login</span></button>
-            `;
-            // Katıl butonu
-            div.querySelector('button').onclick = () => {
-                roomsPopup.style.display = 'none';
-                joinLobbyIdInput.value = room.id;
-                joinLobbyBtn.click();
-            };
-            roomsList.appendChild(div);
-        });
+// Oyuncu listesi güncellemesini hem lobi ekranı hem oyun paneli için yap
+function updatePlayerList(players) {
+    if (!Array.isArray(players)) return;
+    window.lobbyPlayers = players;
+    const playerListDiv = document.getElementById('playerList');
+    if (!playerListDiv || !document.body.contains(playerListDiv)) return;
+    let html = '<b>Oyuncular:</b><br>';
+    players.forEach(p => {
+        html += `${p.name || 'Bilinmeyen'}${p.id === myPlayerId ? ' (Siz)' : ''}<br>`;
+    });
+    if (playerListDiv && document.body.contains(playerListDiv)) playerListDiv.innerHTML = html;
+    if (typeof updateInGameLobbyPanel === 'function') updateInGameLobbyPanel();
+    if (isLobbyOwner && document.getElementById('lobbyOwnerPanelModal') && document.getElementById('lobbyOwnerPanelModal').classList.contains('active')) {
+        if (typeof updateLobbyOwnerPanel === 'function') updateLobbyOwnerPanel();
+    }
+    if (typeof updateScoreboardPanel === 'function') updateScoreboardPanel();
+    if (typeof updateLobbyPlayerWaitingPanel === 'function') updateLobbyPlayerWaitingPanel();
+}
+
+// Lobiye katılınca veya oluşturunca sadece popup görünsün
+function showLobbyWaitingScreen() {
+    const lobbyScreen = document.getElementById('lobbyScreen');
+    const inGameLobbyPanel = document.getElementById('inGameLobbyPanel');
+    const scoreboardPanel = document.getElementById('scoreboardPanel');
+    const gameHUD = document.getElementById('gameHUD');
+    if (lobbyScreen) lobbyScreen.style.display = 'none';
+    if (inGameLobbyPanel) inGameLobbyPanel.style.display = 'none';
+    if (scoreboardPanel) scoreboardPanel.style.display = 'none';
+    if (gameHUD) gameHUD.style.display = 'none';
+    if (isLobbyOwner) {
+        showLobbyOwnerPanel(true);
+        updateLobbyOwnerPanel();
     } else {
-        roomsList.innerHTML = '<div style="text-align:center; color:#888; margin:24px 0;">Aktif oda yok.</div>';
+        showLobbyPlayerWaitingPanel(true);
+        updateLobbyPlayerWaitingPanel();
     }
 }
-// --- SUPABASE REALTIME ---
+
+// Oyun başlatılınca popup'ı kapat
+function hideLobbyPanelOnGameStart() {
+    showLobbyOwnerPanel(false);
+    let modal = document.getElementById('lobbyPlayerWaitingModal');
+    if (modal) modal.style.display = 'none';
+    window.gameStarted = true;
+    showInGameLobbyPanel(false);
+    updateLeftPlayerListPanel();
+}
+
+// Oyun başladığında kendi id'mizi bulmak için ilk state gönderiminde id'yi kaydet
+function sendPlayerState() {
+    if (!ws || ws.readyState !== 1 || !lobbyId) return;
+    const state = {
+        x: player.x,
+        y: player.y,
+        hearts: player.hearts,
+        score: score,
+        wave: wave
+    };
+    ws.send(JSON.stringify({ type: 'player_update', state }));
+}
+
+// Oyun döngüsünde state gönder (60 FPS)
+setInterval(() => {
+    if (lobbyId && document.getElementById('lobbyScreen') && document.getElementById('lobbyScreen').style.display === 'none') {
+        sendPlayerState();
+    }
+}, 1000/60); // 60 FPS
+
+// Çok oyunculu karakter çizimi
+drawOtherPlayers = function() {
+    if (!allPlayers) return;
+    Object.keys(allPlayers).forEach(pid => {
+        if (pid === myPlayerId) return; // Kendini çizme (zaten var)
+        const p = allPlayers[pid];
+        if (!p || typeof p.x !== 'number' || typeof p.y !== 'number') return;
+        ctx.save();
+        ctx.globalAlpha = 0.4; // Saydamlık
+        ctx.drawImage(playerImage, p.x, p.y, player.width, player.height);
+        ctx.globalAlpha = 1.0;
+        // İsim etiketi
+        ctx.font = "10px 'Press Start 2P'";
+        ctx.fillStyle = '#fff';
+        ctx.fillText(p.name || 'Bilinmeyen', p.x, p.y - 8);
+        ctx.restore();
+    });
+};
+
+// drawPlayer fonksiyonunu güncelle
+const originalDrawPlayer = drawPlayer;
+drawPlayer = function() {
+    originalDrawPlayer();
+    drawOtherPlayers();
+};
+
+// === ODA LISTESI POPUP ===
+let lobbyListWs = null;
+function showLobbyListModal() {
+    const modal = document.getElementById('lobbyListModal');
+    modal.classList.add('active');
+    document.getElementById('lobbyListContainer').innerHTML = 'Yükleniyor...';
+    if (!lobbyListWs || lobbyListWs.readyState !== 1) {
+        lobbyListWs = new WebSocket('ws://localhost:8080');
+        lobbyListWs.onopen = () => {
+            lobbyListWs.send(JSON.stringify({ type: 'list_lobbies' }));
+        };
+        lobbyListWs.onmessage = (event) => {
+            const msg = JSON.parse(event.data);
+            if (msg.type === 'lobby_list') {
+                renderLobbyList(msg.lobbies);
+            }
+        };
+    } else {
+        lobbyListWs.send(JSON.stringify({ type: 'list_lobbies' }));
+    }
+}
+function hideLobbyListModal() {
+    document.getElementById('lobbyListModal').classList.remove('active');
+}
+function renderLobbyList(lobbies) {
+    const container = document.getElementById('lobbyListContainer');
+    if (!lobbies || lobbies.length === 0) {
+        container.innerHTML = '<i>Hiç açık oda yok.</i>';
+        return;
+    }
+    container.innerHTML = '';
+    lobbies.forEach(lobby => {
+        const div = document.createElement('div');
+        div.className = 'lobby-list-item';
+        let dolu = lobby.players.length >= 4;
+        div.innerHTML = `<b>Oda:</b> ${lobby.id} <br><b>Sahibi:</b> ${lobby.owner || 'Bilinmeyen'}<br><b>Oyuncular:</b> ${lobby.players.length}/4 ${dolu ? '<span style=\'color:#ff5252\'>(Dolu)</span>' : ''}`;
+        div.style.opacity = dolu ? '0.5' : '1';
+        div.style.pointerEvents = dolu ? 'none' : 'auto';
+        div.onclick = () => {
+            if (!dolu) {
+                document.getElementById('lobbyCodeInput').value = lobby.id;
+                hideLobbyListModal();
+            }
+        };
+        container.appendChild(div);
+    });
+}
+window.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('showLobbyListBtn').onclick = showLobbyListModal;
+    document.getElementById('closeLobbyListModal').onclick = hideLobbyListModal;
+    // Çarpı butonları lobiden çıkış yapsın
+    document.getElementById('closeLobbyOwnerPanel').onclick = leaveLobby;
+    document.getElementById('ownerPanelStartBtn').onclick = () => {
+        ws.send(JSON.stringify({ type: 'start_game' }));
+    };
+    document.getElementById('leaveLobbyBtn').onclick = leaveLobby;
+    const ownerLeaveBtn = document.getElementById('ownerPanelLeaveBtn');
+    if (ownerLeaveBtn) ownerLeaveBtn.onclick = leaveLobby;
+});
+
+// === ODA YÖNETİM PANELİ ===
+function showLobbyOwnerPanel(show) {
+    const modal = document.getElementById('lobbyOwnerPanelModal');
+    if (show) modal.classList.add('active');
+    else modal.classList.remove('active');
+}
+function updateLobbyOwnerPanel() {
+    const roomCodeDiv = document.getElementById('ownerPanelRoomCode');
+    const ownerNameDiv = document.getElementById('ownerPanelOwnerName');
+    const playerListDiv = document.getElementById('ownerPanelPlayerList');
+    if (!roomCodeDiv || !ownerNameDiv || !playerListDiv) return;
+    if (!document.body.contains(roomCodeDiv) || !document.body.contains(ownerNameDiv) || !document.body.contains(playerListDiv)) return;
+    if (roomCodeDiv && document.body.contains(roomCodeDiv)) roomCodeDiv.innerHTML = `<b>Oda Kodu:</b> ${lobbyId}`;
+    if (ownerNameDiv && document.body.contains(ownerNameDiv)) ownerNameDiv.innerHTML = `<b>Sahibi:</b> ${myPlayerName}`;
+    let html = '<b>Oyuncular:</b><br>';
+    if (window.lobbyPlayers && window.lobbyPlayers.length > 0) {
+        window.lobbyPlayers.forEach(p => {
+            html += `${p.name || 'Bilinmeyen'}${p.id === myPlayerId ? ' (Siz)' : ''}<br>`;
+        });
+    }
+    if (playerListDiv && document.body.contains(playerListDiv)) playerListDiv.innerHTML = html;
+    // Sadece çarpı butonu
+    const panel = playerListDiv.parentElement;
+    let row = document.getElementById('ownerPanelLeaveBtnRow');
+    if (!row) {
+        row = document.createElement('div');
+        row.id = 'ownerPanelLeaveBtnRow';
+        row.style.display = 'flex';
+        row.style.justifyContent = 'flex-end';
+        row.style.alignItems = 'center';
+        row.innerHTML = `<button class="close-btn" id="closeLobbyOwnerPanel">×</button>`;
+        panel.appendChild(row);
+        document.getElementById('closeLobbyOwnerPanel').onclick = leaveLobby;
+    }
+}
+window.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('closeLobbyOwnerPanel').onclick = () => showLobbyOwnerPanel(false);
+    document.getElementById('ownerPanelStartBtn').onclick = () => {
+        ws.send(JSON.stringify({ type: 'start_game' }));
+    };
+    document.getElementById('leaveLobbyBtn').onclick = leaveLobby;
+    const ownerLeaveBtn = document.getElementById('ownerPanelLeaveBtn');
+    if (ownerLeaveBtn) ownerLeaveBtn.onclick = leaveLobby;
+});
+// Oyuncu için bekleme popup'ı fonksiyonları
+function showLobbyPlayerWaitingPanel(show) {
+    let modal = document.getElementById('lobbyPlayerWaitingModal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'lobbyPlayerWaitingModal';
+        modal.className = 'mui-modal active';
+        modal.innerHTML = `
+            <div class="modal-content">
+                <button class="close-btn" id="playerWaitingCloseBtn">×</button>
+                <h3 style="margin-top:10px;">Lobiye Katıldınız</h3>
+                <div id="playerWaitingRoomCode" style="margin-bottom:8px;"></div>
+                <div id="playerWaitingPlayerList" style="margin-bottom:16px;"></div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+        document.getElementById('playerWaitingCloseBtn').onclick = leaveLobby;
+    }
+    modal.style.display = show ? 'flex' : 'none';
+}
+function updateLobbyPlayerWaitingPanel() {
+    const codeDiv = document.getElementById('playerWaitingRoomCode');
+    const listDiv = document.getElementById('playerWaitingPlayerList');
+    if (!codeDiv || !listDiv || !document.body.contains(codeDiv) || !document.body.contains(listDiv)) return;
+    if (codeDiv && document.body.contains(codeDiv) && lobbyId) codeDiv.innerHTML = `<b>Oda Kodu:</b> ${lobbyId}`;
+    if (listDiv && document.body.contains(listDiv) && window.lobbyPlayers) {
+        let html = '<b>Oyuncular:</b><br>';
+        window.lobbyPlayers.forEach(p => {
+            html += `${p.name || 'Bilinmeyen'}<br>`;
+        });
+        listDiv.innerHTML = html;
+    }
+}
+// Oyun başlatılınca popup'ı kapat
+function hideLobbyPanelOnGameStart() {
+    showLobbyOwnerPanel(false);
+    let modal = document.getElementById('lobbyPlayerWaitingModal');
+    if (modal) modal.style.display = 'none';
+    window.gameStarted = true;
+    showInGameLobbyPanel(false);
+    updateLeftPlayerListPanel();
+}
+// Oyuncu listesi güncellemesinde bekleme popup'ını da güncelle
+function updatePlayerList(players) {
+    if (!Array.isArray(players)) return;
+    window.lobbyPlayers = players;
+    const playerListDiv = document.getElementById('playerList');
+    if (!playerListDiv || !document.body.contains(playerListDiv)) return;
+    let html = '<b>Oyuncular:</b><br>';
+    players.forEach(p => {
+        html += `${p.name || 'Bilinmeyen'}${p.id === myPlayerId ? ' (Siz)' : ''}<br>`;
+    });
+    if (playerListDiv && document.body.contains(playerListDiv)) playerListDiv.innerHTML = html;
+    updateInGameLobbyPanel && updateInGameLobbyPanel();
+    if (isLobbyOwner && document.getElementById('lobbyOwnerPanelModal') && document.getElementById('lobbyOwnerPanelModal').classList.contains('active')) {
+        updateLobbyOwnerPanel && updateLobbyOwnerPanel();
+    }
+    updateScoreboardPanel && updateScoreboardPanel();
+    updateLobbyPlayerWaitingPanel && updateLobbyPlayerWaitingPanel();
+}
+
+// Lobiden ayrıl fonksiyonu
+function leaveLobby() {
+    if (ws) {
+        ws.close();
+        ws = null;
+    }
+    const lobbyScreen = document.getElementById('lobbyScreen');
+    if (lobbyScreen) lobbyScreen.style.display = 'flex';
+    const lobbyInfo = document.getElementById('lobbyInfo');
+    if (lobbyInfo) lobbyInfo.textContent = '';
+    const startGameBtn = document.getElementById('startGameBtn');
+    if (startGameBtn) startGameBtn.style.display = 'none';
+    const inGameLobbyPanel = document.getElementById('inGameLobbyPanel');
+    if (inGameLobbyPanel) inGameLobbyPanel.style.display = 'none';
+    const scoreboardPanel = document.getElementById('scoreboardPanel');
+    if (scoreboardPanel) scoreboardPanel.style.display = 'none';
+    const gameHUD = document.getElementById('gameHUD');
+    if (gameHUD) gameHUD.style.display = 'none';
+    let modal = document.getElementById('lobbyPlayerWaitingModal');
+    if (modal) modal.style.display = 'none';
+    showLobbyOwnerPanel(false);
+}
+
+// Oyun sırasında sol minimal oyuncu listesi
+function updateLeftPlayerListPanel() {
+    const panel = document.getElementById('leftPlayerListPanel');
+    const list = document.getElementById('leftPlayerList');
+    if (panel && !window.lobbyPlayers || window.lobbyPlayers.length === 0 || document.getElementById('lobbyScreen').style.display !== 'none') {
+        panel.style.display = 'none';
+        return;
+    }
+    let html = '';
+    window.lobbyPlayers.forEach(p => {
+        html += `<div class='left-player-item'><span class='left-player-avatar'>${p.name ? p.name[0].toUpperCase() : '?'}</span>${p.name || 'Bilinmeyen'}</div>`;
+    });
+    if (list && panel) {
+        list.innerHTML = html;
+        panel.style.display = 'block';
+    }
+}
+
+// Skor tablosunu güncelleyen fonksiyon
+function updateScoreboardPanel() {
+    const panel = document.getElementById('scoreboardPanel');
+    const list = document.getElementById('scoreboardList');
+    const lobbyScreen = document.getElementById('lobbyScreen');
+    
+    // Check if required elements exist
+    if (!panel || !list || !lobbyScreen) return;
+    
+    // Don't show scoreboard in lobby
+    if (lobbyScreen.style.display !== 'none') {
+        panel.style.display = 'none';
+        return;
+    }
+    
+    // Make sure we have player data
+    if (!window.lobbyPlayers || !Array.isArray(window.lobbyPlayers) || window.lobbyPlayers.length === 0) {
+        panel.style.display = 'none';
+        return;
+    }
+    
+    // Update local player state if this is the current player
+    window.lobbyPlayers = window.lobbyPlayers.map(p => {
+        // If this is the current player, ensure we have the latest state
+        if (p.id === myPlayerId) {
+            return {
+                ...p,
+                state: {
+                    x: player?.x || 0,
+                    y: player?.y || 0,
+                    hearts: player?.hearts ?? 0,
+                    score: typeof score === 'number' ? score : 0,
+                    wave: typeof wave === 'number' ? wave : 1
+                }
+            };
+        }
+        // For other players, ensure we have valid state data
+        return {
+            ...p,
+            state: {
+                hearts: typeof p.state?.hearts === 'number' ? p.state.hearts : 0,
+                score: typeof p.state?.score === 'number' ? p.state.score : 0,
+                wave: typeof p.state?.wave === 'number' ? p.state.wave : 1,
+                ...p.state // Keep any other state properties
+            }
+        };
+    });
+    
+    // Sort players by score (highest first)
+    const sortedPlayers = [...window.lobbyPlayers].sort((a, b) => {
+        const aScore = a.state?.score || 0;
+        const bScore = b.state?.score || 0;
+        return bScore - aScore;
+    });
+    
+    // Generate the scoreboard HTML
+    let html = '';
+    sortedPlayers.forEach((p, index) => {
+        const isMe = p.id === myPlayerId;
+        const playerState = p.state || {};
+        const hearts = typeof playerState.hearts === 'number' ? playerState.hearts.toFixed(1) : '0.0';
+        const score = playerState.score || 0;
+        const wave = playerState.wave || 1;
+        
+        // Add a crown emoji for the top player
+        const rankEmoji = index === 0 ? '👑 ' : '';
+        
+        html += `
+        <div style="display: flex; ${isMe ? 'background: rgba(255, 255, 255, 0.1); border-radius: 6px;' : ''} padding: 6px 8px; margin: 2px 0; align-items: center;">
+            <div style="flex: 0.5; text-align: center; font-weight: bold;">${index + 1}</div>
+            <div style="flex: 3; padding-left: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                ${rankEmoji}${p.name || 'Bilinmeyen'}
+            </div>
+            <div style="flex: 1.5; text-align: center; color: #FF5252; font-weight: 500;">${hearts} ❤️</div>
+            <div style="flex: 1.5; text-align: center; font-weight: 500;">${score}</div>
+            <div style="flex: 1; text-align: center; color: #4CAF50;">${wave}</div>
+        </div>`;
+    });
+    
+    // Update the DOM
+    if (list && document.body.contains(list)) {
+        list.innerHTML = html;
+    }
+    
+    // Make sure the panel is visible
+    if (panel && document.body.contains(panel)) {
+        panel.style.display = 'block';
+    }
+    // Lobi sahibi tek başına ise Oyunu Başlat butonunu pasif yap
+    const startBtn = document.getElementById('startGameBtn');
+    const inGameStartBtn = document.getElementById('inGameStartBtn');
+    const isOwner = isLobbyOwner;
+    const enoughPlayers = window.lobbyPlayers.length > 1;
+    if (startBtn) {
+        startBtn.disabled = !enoughPlayers;
+        startBtn.style.opacity = enoughPlayers ? '1' : '0.5';
+        startBtn.style.pointerEvents = enoughPlayers ? 'auto' : 'none';
+    }
+    if (inGameStartBtn) {
+        inGameStartBtn.disabled = !enoughPlayers;
+        inGameStartBtn.style.opacity = enoughPlayers ? '1' : '0.5';
+        inGameStartBtn.style.pointerEvents = enoughPlayers ? 'auto' : 'none';
+    }
+}
+
+function updateIconHUD() {
+    const hud = document.getElementById('iconHUD');
+    const hearts = document.getElementById('iconHUDHearts');
+    const scoreSpan = document.getElementById('iconHUDScore');
+    const waveSpan = document.getElementById('iconHUDWave');
+    const lobbyScreen = document.getElementById('lobbyScreen');
+    if (!hud || !hearts || !scoreSpan || !waveSpan || !lobbyScreen) return;
+    if (lobbyScreen.style.display !== 'none') {
+        hud.style.display = 'none';
+        return;
+    }
+    hud.style.display = 'flex';
+    hearts.textContent = player.hearts.toFixed(1);
+    scoreSpan.textContent = score;
+    waveSpan.textContent = wave;
+}
+// animate fonksiyonunda updateIconHUD çağrısı ekle
+const originalAnimate = animate;
+animate = function() {
+    originalAnimate();
+    updateIconHUD();
+}

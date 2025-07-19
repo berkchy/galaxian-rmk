@@ -1,20 +1,9 @@
 {
-  "name": "galaxian-rmk---supabase",
+  "name": "galaxian-server",
   "version": "1.0.0",
-  "main": "game.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/berkchy/galaxian-rmk.git"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "bugs": {
-    "url": "https://github.com/berkchy/galaxian-rmk/issues"
-  },
-  "homepage": "https://github.com/berkchy/galaxian-rmk#readme",
-  "description": ""
-}
+  "main": "server.js",
+  "dependencies": {
+    "ws": "^8.13.0",
+    "uuid": "^9.0.0"
+  }
+} 
