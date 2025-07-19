@@ -1,5 +1,20 @@
 {
   "version": 2,
+  "builds": [
+    {
+      "src": "server.js",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "game.html",
+      "use": "@vercel/static"
+    }
+  ],
+  "routes": [
+    { "src": "/", "dest": "/game.html" },
+    { "src": "/api/socket", "dest": "/server.js" },
+    { "src": "/(.*)", "dest": "/game.html" }
+  ],
   "rewrites": [
     { "source": "/", "destination": "/game.html" },
     { "source": "/api/socket", "destination": "/api/socket" }
@@ -9,7 +24,10 @@
       "source": "/api/socket",
       "headers": [
         { "key": "Connection", "value": "Upgrade" },
-        { "key": "Upgrade", "value": "websocket" }
+        { "key": "Upgrade", "value": "websocket" },
+        { "key": "Access-Control-Allow-Origin", "value": "*" },
+        { "key": "Access-Control-Allow-Headers", "value": "Content-Type, Authorization" },
+        { "key": "Access-Control-Allow-Methods", "value": "GET, POST, OPTIONS" }
       ]
     }
   ]
